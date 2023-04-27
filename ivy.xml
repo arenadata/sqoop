@@ -61,6 +61,7 @@ under the License.
     <artifact conf="master"/>
   </publications>
   <dependencies>
+
     <!-- Dependencies for Hadoop 2.6.0 -->
     <dependency org="org.apache.hadoop" name="hadoop-common"
       rev="${hadoop.version}" conf="common->default">
@@ -203,6 +204,11 @@ under the License.
     <dependency org="org.apache.zookeeper" name="zookeeper"
       rev="${zookeeper.version}" conf="test->default">
       <artifact name="zookeeper" type="jar" />
+    </dependency>
+
+    <dependency org="org.json" name="json" rev="${json.version}" 
+      conf="runtime->default;redist->default">
+      <artifact name="json" type="jar" />
     </dependency>
 
     <dependency org="org.apache.avro" name="avro" rev="${avro.version}"
