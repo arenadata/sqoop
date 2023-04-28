@@ -118,8 +118,19 @@ under the License.
       <exclude org="org.apache.avro" module="avro" />
       <exclude org="com.twitter" module="parquet-hadoop" />
       <exclude org="com.twitter" module="parquet-format" />
+      <exclude org="com.twitter" module="parquet-avro" />
+      <exclude org="com.twitter" module="parquet-column" />
+      <exclude org="com.twitter" module="parquet-common" />
+      <exclude org="com.twitter" module="parquet-encoding" />
+      <exclude org="com.twitter" module="parquet-generator" />
     </dependency>
     <dependency org="org.apache.parquet" name="parquet-hadoop" rev="${parquet-hadoop.version}"
+                conf="common->default;redist->default">
+    </dependency>
+    <dependency org="org.apache.parquet" name="parquet-avro" rev="${parquet-hadoop.version}"
+                conf="common->default;redist->default">
+    </dependency>
+    <dependency org="org.apache.parquet" name="parquet-generator" rev="${parquet-hadoop.version}"
                 conf="common->default;redist->default">
     </dependency>
     <dependency org="org.apache.parquet" name="parquet-format" rev="${parquet-format.version}"
