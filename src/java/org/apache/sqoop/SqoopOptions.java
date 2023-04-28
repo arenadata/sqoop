@@ -391,6 +391,14 @@ public class SqoopOptions implements Cloneable {
   @StoredAsProperty(ORACLE_ESCAPING_DISABLED)
   private boolean oracleEscapingDisabled;
 
+  public enum HBaseNullIncrementalMode {
+    Ignore,
+    Delete,
+  }
+
+  @StoredAsProperty("hbase.null.incremental.mode")
+  private HBaseNullIncrementalMode hbaseNullIncrementalMode;
+
   public SqoopOptions() {
     initDefaults(null);
   }
@@ -1076,6 +1084,8 @@ public class SqoopOptions implements Cloneable {
 
     // set escape column mapping to true
     this.escapeColumnMappingEnabled = true;
+
+    this.hbaseNullIncrementalMode = HBaseNullIncrementalMode.Ignore;
   }
 
   /**
@@ -2786,6 +2796,19 @@ public class SqoopOptions implements Cloneable {
       return mapColumnJava;
     }
 
+  /**
+   * Get HBase null incremental mode to use.
+   */
+  public HBaseNullIncrementalMode getHbaseNullIncrementalMode() {
+    return hbaseNullIncrementalMode;
+  }
+
+  /**
+   * Set HBase null incremental mode to use.
+   */
+  public void setHbaseNullIncrementalMode(HBaseNullIncrementalMode hbaseNullIncrementalMode) {
+    this.hbaseNullIncrementalMode = hbaseNullIncrementalMode;
+  }
 
 }
 

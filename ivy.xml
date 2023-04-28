@@ -163,6 +163,10 @@ under the License.
       <exclude org="org.apache.thrift" module="thrift"/>
       <exclude org="log4j" module="log4j"/>
     </dependency>
+    <dependency org="org.apache.hbase" name="hbase-zookeeper" rev="${hbase.version}" conf="common->default">
+      <artifact name="hbase-zookeeper" type="jar" ext="jar" m:classifier="tests"/>
+      <exclude org="log4j" module="log4j"/>
+    </dependency>
     <dependency org="org.apache.hbase" name="hbase-hadoop-compat" rev="${hbase.version}" conf="common->default">
       <artifact name="hbase-hadoop-compat" type="jar"/>
       <artifact name="hbase-hadoop-compat" type="test-jar" ext="jar" m:classifier="tests"/>
@@ -219,7 +223,7 @@ under the License.
       <exclude org="org.apache.velocity" module="velocity"/>
     </dependency>
     <dependency org="org.apache.avro" name="avro-mapred" rev="${avro.version}"
-      m:classifier="hadoop2" conf="common->default;redist->default">
+                conf="common->default;redist->default">
       <exclude org="org.slf4j" module="slf4j-api"/>
       <exclude org="org.mortbay.jetty" module="jetty"/>
       <exclude org="org.jboss.netty" module="netty"/>

@@ -81,7 +81,7 @@ mkdir %newoutputdir%
   echo.  }
   echo.
   echo.  public static final String VERSION="%version%";
-  echo.  public static final String GIT_HASH="%signature%";
+  echo.  public static final String GIT_HASH="";
   echo.  public static final String COMPILE_USER="%USER%";
   echo.  public static final String COMPILE_DATE="%compiledate%";
   echo.
