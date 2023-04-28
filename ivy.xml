@@ -119,10 +119,10 @@ under the License.
       <exclude org="com.twitter" module="parquet-hadoop" />
       <exclude org="com.twitter" module="parquet-format" />
     </dependency>
-    <dependency org="com.twitter" name="parquet-hadoop" rev="${parquet-hadoop.version}"
+    <dependency org="org.apache.parquet" name="parquet-hadoop" rev="${parquet-hadoop.version}"
                 conf="common->default;redist->default">
     </dependency>
-    <dependency org="com.twitter" name="parquet-format" rev="${parquet-format.version}"
+    <dependency org="org.apache.parquet" name="parquet-format" rev="${parquet-format.version}"
                 conf="common->default;redist->default">
     </dependency>
     <!-- dependencies for static analysis -->
