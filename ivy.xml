@@ -109,13 +109,22 @@ under the License.
     <dependency org="org.kitesdk" name="kite-data-mapreduce" rev="${kite-data.version}"
       conf="common->default;redist->default">
       <exclude org="org.apache.avro" module="avro" />
+      <exclude org="com.twitter" module="parquet-hadoop" />
+      <exclude org="com.twitter" module="parquet-format" />
       </dependency>
     <dependency org="org.kitesdk" name="kite-data-hive" rev="${kite-data.version}"
       conf="common->default;redist->default">
       <exclude org="com.twitter" module="parquet-hive-bundle"/>
       <exclude org="org.apache.avro" module="avro" />
+      <exclude org="com.twitter" module="parquet-hadoop" />
+      <exclude org="com.twitter" module="parquet-format" />
     </dependency>
-
+    <dependency org="com.twitter" name="parquet-hadoop" rev="${parquet-hadoop.version}"
+                conf="common->default;redist->default">
+    </dependency>
+    <dependency org="com.twitter" name="parquet-format" rev="${parquet-format.version}"
+                conf="common->default;redist->default">
+    </dependency>
     <!-- dependencies for static analysis -->
     <dependency org="checkstyle" name="checkstyle" rev="${checkstyle.version}"
       conf="checkstyle->default" />
