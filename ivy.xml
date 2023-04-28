@@ -89,8 +89,10 @@ under the License.
       rev="${commons-logging.version}" conf="common->default"/>
     <dependency org="commons-net" name="commons-net"
       rev="${commons-net.version}" conf="common->default"/>
-    <dependency org="log4j" name="log4j" rev="${log4j.version}"
-      conf="common->master" />
+    <dependency org="ch.qos.reload4j" name="reload4j" rev="${reload4j.version}"
+                conf="common->master" />
+    <dependency org="org.slf4j" name="slf4j-reload4j" rev="${slf4j.version}"
+                conf="common->master" />
     <dependency org="junit" name="junit" rev="${junit.version}"
       conf="test->default"/>
     <dependency org="org.mockito" name="mockito-all"
@@ -169,6 +171,7 @@ under the License.
       <exclude org="com.sun.jersey" module="jersey-server"/>
       <exclude org="org.apache.thrift" module="thrift"/>
       <exclude org="log4j" module="log4j"/>
+      <exclude org="ch.qos.reload4j" module="reload4j"/>
     </dependency>
     <dependency org="org.apache.hbase" name="hbase-common" rev="${hbase.version}" conf="common->default">
       <artifact name="hbase-common" type="jar"/>
@@ -178,6 +181,7 @@ under the License.
       <exclude org="com.sun.jersey" module="jersey-server"/>
       <exclude org="org.apache.thrift" module="thrift"/>
       <exclude org="log4j" module="log4j"/>
+      <exclude org="ch.qos.reload4j" module="reload4j"/>
     </dependency>
     <dependency org="org.apache.hbase" name="hbase-server" rev="${hbase.version}" conf="common->default">
       <artifact name="hbase-server" type="jar"/>
@@ -187,10 +191,12 @@ under the License.
       <exclude org="com.sun.jersey" module="jersey-server"/>
       <exclude org="org.apache.thrift" module="thrift"/>
       <exclude org="log4j" module="log4j"/>
+      <exclude org="ch.qos.reload4j" module="reload4j"/>
     </dependency>
     <dependency org="org.apache.hbase" name="hbase-zookeeper" rev="${hbase.version}" conf="common->default">
       <artifact name="hbase-zookeeper" type="jar" ext="jar" m:classifier="tests"/>
       <exclude org="log4j" module="log4j"/>
+      <exclude org="ch.qos.reload4j" module="reload4j"/>
     </dependency>
     <dependency org="org.apache.hbase" name="hbase-hadoop-compat" rev="${hbase.version}" conf="common->default">
       <artifact name="hbase-hadoop-compat" type="jar"/>
@@ -200,6 +206,7 @@ under the License.
       <exclude org="com.sun.jersey" module="jersey-server"/>
       <exclude org="org.apache.thrift" module="thrift"/>
       <exclude org="log4j" module="log4j"/>
+      <exclude org="ch.qos.reload4j" module="reload4j"/>
     </dependency>
     <dependency org="org.apache.hbase" name="hbase-hadoop-compat" rev="${hbase.version}" conf="common->default">
       <artifact name="hbase-hadoop-compat" type="jar"/>
@@ -209,6 +216,7 @@ under the License.
       <exclude org="com.sun.jersey" module="jersey-server"/>
       <exclude org="org.apache.thrift" module="thrift"/>
       <exclude org="log4j" module="log4j"/>
+      <exclude org="ch.qos.reload4j" module="reload4j"/>
     </dependency>
     <dependency org="org.apache.hbase" name="hbase-hadoop2-compat" rev="${hbase.version}" conf="common->default">
       <artifact name="hbase-hadoop2-compat" type="jar"/>
@@ -218,6 +226,7 @@ under the License.
       <exclude org="com.sun.jersey" module="jersey-server"/>
       <exclude org="org.apache.thrift" module="thrift"/>
       <exclude org="log4j" module="log4j"/>
+      <exclude org="ch.qos.reload4j" module="reload4j"/>
       <exclude org="org.apache.avro" module="avro" />
     </dependency>
 
