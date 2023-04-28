@@ -95,7 +95,7 @@ def get_jira_issue_types(log):
 
   d = {}
 
-  def add_issue(issue, typ, line):
+  """ def add_issue(issue, typ, line):
     try:
       d[typ].append((issue, line))
     except KeyError:
@@ -120,7 +120,7 @@ def get_jira_issue_types(log):
       # This line did not start with "SQOOP-.."
       # Unless it's a CDH buildfix, add it in as a "Task". 
       add_issue("", "Task", line)
-
+ """
   return d
 
 
