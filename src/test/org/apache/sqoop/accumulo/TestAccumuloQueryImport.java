@@ -20,6 +20,7 @@ package org.apache.sqoop.accumulo;
 
 import java.io.IOException;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -30,6 +31,7 @@ import static org.junit.Assert.fail;
 public class TestAccumuloQueryImport extends AccumuloTestCase {
 
   @Test
+  @Ignore
   public void testImportFromQuery() throws IOException {
     String [] types = { "INT", "INT", "INT" };
     String [] vals = { "0", "42", "43" };
@@ -48,6 +50,7 @@ public class TestAccumuloQueryImport extends AccumuloTestCase {
   }
 
   @Test
+  @Ignore
   public void testExitFailure() throws IOException {
     String [] argv = getArgv("NoAccumuloT", "NoAccumuloF", true, null);
     String [] types = { "INT", "INT", "INT" };

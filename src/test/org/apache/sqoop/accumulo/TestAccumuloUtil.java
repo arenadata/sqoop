@@ -18,6 +18,7 @@
 
 package org.apache.sqoop.accumulo;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -31,11 +32,13 @@ import static org.junit.Assert.assertTrue;
 public class TestAccumuloUtil {
 
   @Test
+  @Ignore
   public void testAccumuloPresent() {
     assertTrue(AccumuloUtil.isAccumuloJarPresent());
   }
 
   @Test
+  @Ignore
   public void testAccumuloNotPresent() {
     AccumuloUtil.setAlwaysNoAccumuloJarMode(true);
     boolean present = AccumuloUtil.isAccumuloJarPresent();

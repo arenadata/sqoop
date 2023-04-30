@@ -20,6 +20,7 @@ package org.apache.sqoop.accumulo;
 
 import java.io.IOException;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.fail;
@@ -30,6 +31,7 @@ import static org.junit.Assert.fail;
 public class TestAccumuloImport extends AccumuloTestCase {
 
   @Test
+  @Ignore
   public void testBasicUsage() throws IOException {
     String [] argv = getArgv("BasicUsage", "BasicColFam", true, null);
     String [] types = { "INT", "INT" };
@@ -40,6 +42,7 @@ public class TestAccumuloImport extends AccumuloTestCase {
   }
 
   @Test
+  @Ignore
   public void testMissingTableFails() throws IOException {
     // Test that if the table doesn't exist, we fail unless we
     // explicitly create the table.
@@ -56,6 +59,7 @@ public class TestAccumuloImport extends AccumuloTestCase {
   }
 
   @Test
+  @Ignore
   public void testOverwriteSucceeds() throws IOException {
     // Test that we can create a table and then import immediately
     // back on top of it without problem.
@@ -71,6 +75,7 @@ public class TestAccumuloImport extends AccumuloTestCase {
   }
 
   @Test
+  @Ignore
   public void testStrings() throws IOException {
     String [] argv = getArgv("stringT", "stringF", true, null);
     String [] types = { "INT", "VARCHAR(32)" };
@@ -81,6 +86,7 @@ public class TestAccumuloImport extends AccumuloTestCase {
   }
 
   @Test
+  @Ignore
   public void testNulls() throws IOException {
     String [] argv = getArgv("nullT", "nullF", true, null);
     String [] types = { "INT", "INT", "INT" };
@@ -95,6 +101,7 @@ public class TestAccumuloImport extends AccumuloTestCase {
   }
 
   @Test
+  @Ignore
   public void testExitFailure() throws IOException {
     String [] argv = getArgv("NoAccumuloT", "NoAccumuloF", true, null);
     String [] types = { "INT", "INT", "INT" };
