@@ -85,14 +85,16 @@ under the License.
     <!-- Common dependencies for Sqoop -->
     <dependency org="commons-cli" name="commons-cli"
       rev="${commons-cli.version}" conf="common->default"/>
-    <dependency org="commons-logging" name="commons-logging"
-      rev="${commons-logging.version}" conf="common->default"/>
+    <dependency org="org.slf4j" name="jcl-over-slf4j"
+      rev="${slf4j.version}" conf="redist->default"/>
     <dependency org="commons-net" name="commons-net"
       rev="${commons-net.version}" conf="common->default"/>
     <dependency org="ch.qos.reload4j" name="reload4j" rev="${reload4j.version}"
-                conf="common->master" />
+                conf="redist->default" />
     <dependency org="org.slf4j" name="slf4j-reload4j" rev="${slf4j.version}"
-                conf="common->master" />
+                conf="redist->default" />
+    <dependency org="org.slf4j" name="slf4j-api" rev="${slf4j.version}"
+                conf="redist->default" />
     <dependency org="junit" name="junit" rev="${junit.version}"
       conf="test->default"/>
     <dependency org="org.mockito" name="mockito-all"
@@ -110,10 +112,14 @@ under the License.
       conf="common->default;redist->default"/>
     <dependency org="org.kitesdk" name="kite-data-mapreduce" rev="${kite-data.version}"
       conf="common->default;redist->default">
+      <exclude org="org.slf4j" module="slf4j-api" />
+      <exclude org="commons-logging" module="commons-logging" />
       <exclude org="org.apache.avro" module="avro" />
-      </dependency>
+    </dependency>
     <dependency org="org.kitesdk" name="kite-data-hive" rev="${kite-data.version}"
       conf="common->default;redist->default">
+      <exclude org="org.slf4j" module="slf4j-api" />
+      <exclude org="commons-logging" module="commons-logging" />
       <exclude org="org.apache.parquet" module="parquet-hive-bundle"/>
       <exclude org="org.apache.avro" module="avro" />
     </dependency>
