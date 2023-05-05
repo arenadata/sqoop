@@ -43,6 +43,7 @@ if [ "$SQOOP_NAME" = "sqoop-metastore" ]; then
 else
   if [ -f "${SQOOP_CONF_DIR}/sqoop-env.sh" ]; then
     . "${SQOOP_CONF_DIR}/sqoop-env.sh"
+  fi
 fi
 
 # Find paths to our dependency systems. If they are unset, use CDH defaults.
