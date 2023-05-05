@@ -72,12 +72,12 @@ fi
 
 # We are setting HADOOP_HOME to HADOOP_COMMON_HOME if it is not set
 # so that hcat script works correctly on BigTop
-#if [ -z "${HADOOP_HOME}" ]; then
-#  if [ -n "${HADOOP_COMMON_HOME}" ]; then
-#     HADOOP_HOME=${HADOOP_COMMON_HOME}
-#     export HADOOP_HOME
-#  fi
-#fi
+if [ -z "${HADOOP_HOME}" ]; then
+  if [ -n "${HADOOP_COMMON_HOME}" ]; then
+     HADOOP_HOME=${HADOOP_COMMON_HOME}
+     export HADOOP_HOME
+  fi
+fi
 
 if [ -z "${HBASE_HOME}" ]; then
   if [ -d "/usr/lib/hbase" ]; then
