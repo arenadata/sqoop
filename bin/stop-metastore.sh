@@ -42,14 +42,19 @@ if [ -z "${pidfilename}" ]; then
   exit 1
 fi
 
+# Export service name for applying corresponding *-env.sh in configure-sqoop
+
+SQOOP_NAME=sqoop-metastore
+export SQOOP_NAME
+
+
 # Shut down any running metastore.
 
 if [ ! -z "$bin" ]; then
   bin="$bin/"
 fi
 
-HADOOP_ROOT_LOGGER=${HADOOP_ROOT_LOGGER:-ERROR,console} \
-    "$bin/sqoop" metastore --shutdown 2>&1 >/dev/null
+nohup "$bin/sqoop" metastore --shutdown 2>&1 >/dev/null
 ret=$?
 if [ "$ret" != "0" ]; then
   echo "Could not shut down metastore."
