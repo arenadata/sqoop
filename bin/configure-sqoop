@@ -34,8 +34,16 @@ fi
 
 SQOOP_CONF_DIR=${SQOOP_CONF_DIR:-${SQOOP_HOME}/conf}
 
-if [ -f "${SQOOP_CONF_DIR}/sqoop-env.sh" ]; then
-  . "${SQOOP_CONF_DIR}/sqoop-env.sh"
+# Source the corresponding environment config for Sqoop Metastore or client
+
+if [ "$SQOOP_NAME" = "sqoop-metastore" ]; then
+  if [ -f "${SQOOP_CONF_DIR}/sqoop-metastore-env.sh" ]; then
+    . "${SQOOP_CONF_DIR}/sqoop-metastore-env.sh"
+  fi
+else
+  if [ -f "${SQOOP_CONF_DIR}/sqoop-env.sh" ]; then
+    . "${SQOOP_CONF_DIR}/sqoop-env.sh"
+  fi
 fi
 
 # Find paths to our dependency systems. If they are unset, use CDH defaults.
@@ -79,25 +87,6 @@ if [ -z "${HBASE_HOME}" ]; then
     HBASE_HOME=${SQOOP_HOME}/../hbase
   fi
 fi
-if [ -z "${HCAT_HOME}" ]; then
-  if [ -d "/usr/lib/hive-hcatalog" ]; then
-    HCAT_HOME=/usr/lib/hive-hcatalog
-  elif [ -d "/usr/lib/hcatalog" ]; then
-    HCAT_HOME=/usr/lib/hcatalog
-  else
-    HCAT_HOME=${SQOOP_HOME}/../hive-hcatalog
-    if [ ! -d ${HCAT_HOME} ]; then
-       HCAT_HOME=${SQOOP_HOME}/../hcatalog
-    fi
-  fi
-fi
-if [ -z "${ACCUMULO_HOME}" ]; then
-  if [ -d "/usr/lib/accumulo" ]; then
-    ACCUMULO_HOME=/usr/lib/accumulo
-  else
-    ACCUMULO_HOME=${SQOOP_HOME}/../accumulo
-  fi
-fi
 if [ -z "${ZOOKEEPER_HOME}" ]; then
   if [ -d "/usr/lib/zookeeper" ]; then
     ZOOKEEPER_HOME=/usr/lib/zookeeper
@@ -132,15 +121,6 @@ if [ ! -d "${HBASE_HOME}" ]; then
 fi
 
 ## Moved to be a runtime check in sqoop.
-if [ ! -d "${HCAT_HOME}" ]; then
-  echo "Warning: $HCAT_HOME does not exist! HCatalog jobs will fail."
-  echo 'Please set $HCAT_HOME to the root of your HCatalog installation.'
-fi
-
-if [ ! -d "${ACCUMULO_HOME}" ]; then
-  echo "Warning: $ACCUMULO_HOME does not exist! Accumulo imports will fail."
-  echo 'Please set $ACCUMULO_HOME to the root of your Accumulo installation.'
-fi
 if [ ! -d "${ZOOKEEPER_HOME}" ]; then
   echo "Warning: $ZOOKEEPER_HOME does not exist! Accumulo imports will fail."
   echo 'Please set $ZOOKEEPER_HOME to the root of your Zookeeper installation.'
@@ -176,24 +156,6 @@ if [ -e "$HBASE_HOME/bin/hbase" ]; then
   SQOOP_CLASSPATH=${TMP_SQOOP_CLASSPATH}
 fi
 
-# Add HCatalog to dependency list
-if [ -e "${HCAT_HOME}/bin/hcat" ]; then
-  TMP_SQOOP_CLASSPATH=${SQOOP_CLASSPATH}:`${HCAT_HOME}/bin/hcat -classpath`
-  if [ -z "${HIVE_CONF_DIR}" ]; then
-    TMP_SQOOP_CLASSPATH=${TMP_SQOOP_CLASSPATH}:${HIVE_CONF_DIR}
-  fi
-  SQOOP_CLASSPATH=${TMP_SQOOP_CLASSPATH}
-fi
-
-# Add Accumulo to dependency list
-if [ -e "$ACCUMULO_HOME/bin/accumulo" ]; then
-  for jn in `$ACCUMULO_HOME/bin/accumulo classpath | grep file:.*accumulo.*jar | cut -d':' -f2`; do
-    SQOOP_CLASSPATH=$SQOOP_CLASSPATH:$jn
-  done
-  for jn in `$ACCUMULO_HOME/bin/accumulo classpath | grep file:.*zookeeper.*jar | cut -d':' -f2`; do
-    SQOOP_CLASSPATH=$SQOOP_CLASSPATH:$jn
-  done
-fi
 
 ZOOCFGDIR=${ZOOCFGDIR:-/etc/zookeeper}
 if [ -d "${ZOOCFGDIR}" ]; then
@@ -225,7 +187,5 @@ export HADOOP_CLASSPATH
 export HADOOP_COMMON_HOME
 export HADOOP_MAPRED_HOME
 export HBASE_HOME
-export HCAT_HOME
 export HIVE_CONF_DIR
-export ACCUMULO_HOME
 export ZOOKEEPER_HOME
