@@ -85,7 +85,6 @@ under the License.
       <resolver ref="cloudera-releases"/>
       <resolver ref="cloudera-staging"/>
       <resolver ref="maven2"/>
-      <resolver ref="conjars"/>
     </chain>
 
     <chain name="internal" dual="true">
@@ -95,12 +94,10 @@ under the License.
       <resolver ref="datanucleus"/>
       <resolver ref="cloudera-staging"/>
       <resolver ref="maven2"/>
-      <resolver ref="conjars"/>
     </chain>
 
     <chain name="external">
       <resolver ref="maven2"/>
-      <resolver ref="conjars"/>
     </chain>
 
   </resolvers>
