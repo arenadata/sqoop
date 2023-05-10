@@ -19,7 +19,7 @@
 # limitations under the License.
 #
 # This script starts a metastore instance.
-# Usage: start-metastore.sh -p pidfilename -l logdir
+# Usage: start-metastore.sh -p pidfilename
 
 prgm=$0
 bin=`dirname $prgm`
@@ -29,30 +29,17 @@ while [ ! -z "$1" ]; do
     shift
     pidfilename=$1
     shift
-  elif [ "$1" == "-l" ]; then
-    shift
-    logdir=$1
-    shift
   else
     echo "Unknown argument $1"
     exit 1
   fi
 done
 
-# Verify our arguments exist.
+# Verify our argument exists.
 
 if [ -z "${pidfilename}" ]; then
   echo "Missing argument: -p pidfilename"
   exit 1
-fi
-
-if [ -z "${logdir}" ]; then
-  echo "Missing argument: -l logdir"
-  exit 1
-fi
-
-if [ ! -d "${logdir}" ]; then
-  echo "Warning: Log directory ${logdir} does not exist."
 fi
 
 function pid_file_alive() {
@@ -111,18 +98,9 @@ if [ "$val" != "$pid" ]; then
   exit 1
 fi
 
-# Determine the log file name.
-user=`id -un`
-host=`hostname`
-
-# Log file name we would like to use.
-logfile="$logdir/sqoop-metastore-$user-$host.log"
-touch $logfile >/dev/null 2>&1
-if [ "$?" != "0" ]; then
-  # Can't open for logging.
-  echo "Warning: Cannot write to log directory. Disabling metastore log."
-  logfile=/dev/null
-fi
+# Export service name for applying corresponding *-env.sh in configure-sqoop
+SQOOP_NAME=sqoop-metastore
+export SQOOP_NAME
 
 # Actually start the metastore.
 
@@ -130,7 +108,7 @@ if [ ! -z "$bin" ]; then
   bin="$bin/"
 fi
 
-nohup "$bin/sqoop" metastore > "$logfile" 2>&1 </dev/null &
+nohup "$bin/sqoop" metastore > /dev/null 2>&1 </dev/null &
 ret=$?
 realpid=$!
 
@@ -146,5 +124,3 @@ echo $realpid > "$pidfilename"
 
 # The original pid file with the extension is no longer necessary.
 rm "$pidfilename.$pid"
-
-
