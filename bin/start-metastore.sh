@@ -63,7 +63,7 @@ if [ -e "$pidfilename" ]; then
   # If the pid file exists, check to see if the process is alive.
   # We first write our own (bash script) pid into the pidfile.
   # Then we write the child pid over top; the bash script then terminates.
-  # So we must be prepared to accept either case.  
+  # So we must be prepared to accept either case. 
 
   # We must check for bash first. Serialization matters.
   fail_if_pid_exists "$pidfilename" "bash"
@@ -71,7 +71,7 @@ if [ -e "$pidfilename" ]; then
 
   # We're good to go. Remove the existing pidfile.
   existingpid=`cat $pidfilename`
-  [[ -e "$pidfilename" ]] && rm "$pidfilename"  
+  [[ -e "$pidfilename" ]] && rm "$pidfilename" 
   [[ -e "$pidfilename.$existingpid" ]] && rm "$pidfilename.$existingpid"
 fi
 
