@@ -22,7 +22,10 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import com.cloudera.sqoop.util.ImportException;
 import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -50,6 +53,8 @@ import com.cloudera.sqoop.mapreduce.db.DBConfiguration;
 import com.cloudera.sqoop.mapreduce.db.DataDrivenDBInputFormat;
 import com.cloudera.sqoop.orm.AvroSchemaGenerator;
 import org.apache.sqoop.util.FileSystemUtil;
+import org.kitesdk.data.Dataset;
+import org.kitesdk.data.DatasetWriter;
 import org.kitesdk.data.Datasets;
 import org.kitesdk.data.mapreduce.DatasetKeyOutputFormat;
 
@@ -61,6 +66,8 @@ public class DataDrivenImportJob extends ImportJobBase {
 
   public static final Log LOG = LogFactory.getLog(
       DataDrivenImportJob.class.getName());
+
+  private String tableName;
 
   @SuppressWarnings("unchecked")
   public DataDrivenImportJob(final SqoopOptions opts) {
@@ -76,6 +83,7 @@ public class DataDrivenImportJob extends ImportJobBase {
   @Override
   protected void configureMapper(Job job, String tableName,
       String tableClassName) throws IOException {
+    this.tableName = tableName;
     if (isHCatJob) {
       LOG.info("Configuring mapper for HCatalog import job");
       job.setOutputKeyClass(LongWritable.class);
@@ -337,6 +345,34 @@ public class DataDrivenImportJob extends ImportJobBase {
         LOG.warn("Error closing connection: " + sqlE);
       }
     }
+  }
+
+  @Override
+  protected void jobTeardown(Job job) throws IOException, ImportException {
+    if (options.getFileLayout()
+            == SqoopOptions.FileLayout.ParquetFile && !options.doHiveImport()) {
+      try {
+        long numRecords = ConfigurationHelper.getNumMapOutputRecords(job);
+        if (numRecords == 0) {
+          JobConf conf = (JobConf)job.getConfiguration();
+          final String schemaNameOverride = tableName;
+          Schema schema = generateAvroSchema(tableName, schemaNameOverride);
+          String uri = getKiteUri(conf, this.tableName);
+          ParquetJob.WriteMode writeMode = ParquetJob.WriteMode.DEFAULT;
+          if (!Datasets.exists(uri)) {
+            Dataset dataset = ParquetJob.createDataset(schema, ParquetJob.getCompressionType(conf), uri);
+            DatasetWriter writer = dataset.newWriter();
+            GenericRecord emptyRecord = new GenericData.Record(schema);
+            writer.write(emptyRecord);
+            writer.close();
+          }
+
+        }
+      } catch (InterruptedException e) {
+        LOG.error("Failed to complete jobTeardown", e);
+      }
+    }
+    super.jobTeardown(job);
   }
 }
 
