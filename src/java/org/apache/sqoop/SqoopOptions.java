@@ -35,7 +35,6 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.sqoop.accumulo.AccumuloConstants;
 import org.apache.sqoop.mapreduce.mainframe.MainframeConfiguration;
-import org.apache.sqoop.metastore.GenericJobStorage;
 import org.apache.sqoop.tool.BaseSqoopTool;
 import org.apache.sqoop.util.CredentialsUtil;
 import org.apache.sqoop.util.LoggingUtils;
@@ -1090,27 +1089,9 @@ public class SqoopOptions implements Cloneable {
     // set escape column mapping to true
     this.escapeColumnMappingEnabled = true;
 
-    this.metaConnectStr =
-            System.getProperty(GenericJobStorage.AUTO_STORAGE_CONNECT_STRING_KEY, getLocalAutoConnectString());
-    this.metaUsername =
-            System.getProperty(GenericJobStorage.AUTO_STORAGE_USER_KEY, GenericJobStorage.DEFAULT_AUTO_USER);
-    this.metaPassword =
-            System.getProperty(GenericJobStorage.AUTO_STORAGE_PASS_KEY, GenericJobStorage.DEFAULT_AUTO_PASSWORD);
-
     this.hbaseNullIncrementalMode = HBaseNullIncrementalMode.Ignore;
   }
 
-  private String getLocalAutoConnectString() {
-    String homeDir = System.getProperty("user.home");
-
-    File homeDirObj = new File(homeDir);
-    File sqoopDataDirObj = new File(homeDirObj, ".sqoop");
-    File databaseFileObj = new File(sqoopDataDirObj, "metastore.db");
-
-    String dbFileStr = databaseFileObj.toString();
-    return "jdbc:hsqldb:file:" + dbFileStr
-            + ";hsqldb.write_delay=false;shutdown=true";
-  }
   /**
    * The SQOOP_RETHROW_PROPERTY system property is considered to be set if it is set to
    * any kind of String value, i.e. it is not null.
@@ -2836,12 +2817,26 @@ public class SqoopOptions implements Cloneable {
   public String getMetaConnectStr() {
     return metaConnectStr;
   }
+
+  public void setMetaConnectStr(String metaConnectStr) {
+    this.metaConnectStr = metaConnectStr;
+  }
+
   public String getMetaUsername() {
     return metaUsername;
+  }
+
+  public void setMetaUsername(String metaUsername) {
+    this.metaUsername = metaUsername;
   }
 
   public String getMetaPassword() {
     return metaPassword;
   }
+
+  public void setMetaPassword(String metaPassword) {
+    this.metaPassword = metaPassword;
+  }
+
 }
 
