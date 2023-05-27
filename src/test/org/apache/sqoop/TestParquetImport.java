@@ -18,7 +18,6 @@
 
 package org.apache.sqoop;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.sqoop.testutil.CommonArgs;
 import org.apache.sqoop.testutil.HsqldbTestServer;
 import org.apache.sqoop.testutil.ImportJobTestCase;
@@ -31,9 +30,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.sqoop.util.ParquetReader;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -57,7 +53,6 @@ import static org.junit.Assume.assumeTrue;
 /**
  * Tests --as-parquetfile.
  */
-@RunWith(Parameterized.class)
 public class TestParquetImport extends ImportJobTestCase {
 
   public static final Log LOG = LogFactory
@@ -137,7 +132,6 @@ public class TestParquetImport extends ImportJobTestCase {
 
   @Test
   public void testHadoopGzipCompression() throws IOException {
-    assumeFalse(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE.equals(parquetImplementation));
     runParquetImportTest("gzip");
   }
 
@@ -151,7 +145,6 @@ public class TestParquetImport extends ImportJobTestCase {
 
   @Test(expected = IOException.class)
   public void testHadoopDeflateCompression() throws IOException {
-    assumeFalse(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE.equals(parquetImplementation));
     runParquetImportTest("deflate");
   }
 

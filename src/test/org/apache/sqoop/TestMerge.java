@@ -52,9 +52,7 @@ import org.apache.sqoop.util.ParquetReader;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_HADOOP;
 import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE;
 import static org.junit.Assert.fail;
 
 /**
@@ -164,13 +162,6 @@ public class TestMerge extends BaseSqoopTestCase {
 
   @Test
   public void testParquetFileMergeHadoop() throws Exception {
-    parquetJobConfiguratorImplementation = PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_HADOOP;
-    runMergeTest(SqoopOptions.FileLayout.ParquetFile);
-  }
-
-  @Test
-  public void testParquetFileMergeKite() throws Exception {
-    parquetJobConfiguratorImplementation = PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE;
     runMergeTest(SqoopOptions.FileLayout.ParquetFile);
   }
 

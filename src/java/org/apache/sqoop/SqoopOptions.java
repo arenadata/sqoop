@@ -53,7 +53,6 @@ import org.apache.sqoop.util.StoredAsProperty;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.sqoop.Sqoop.SQOOP_RETHROW_PROPERTY;
 import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE;
 import static org.apache.sqoop.orm.ClassWriter.toJavaIdentifier;
 
 /**
@@ -1138,6 +1137,7 @@ public class SqoopOptions implements Cloneable {
     this.escapeColumnMappingEnabled = true;
 
     this.hbaseNullIncrementalMode = HBaseNullIncrementalMode.Ignore;
+    this.parquetConfiguratorImplementation = HADOOP;
   }
 
   /**
@@ -2911,14 +2911,7 @@ public class SqoopOptions implements Cloneable {
     this.hs2Keytab = hs2Keytab;
   }
 
-  private void ensureDefaultConfigurations(Configuration config) {
-    if (config == null) {
-      return;
-    }
-    if (isBlank(config.get(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY))) {
-      config.set(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY, PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE);
-    }
-  }
+
 
 }
 

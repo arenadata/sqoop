@@ -27,7 +27,6 @@ import java.io.InputStream;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Properties;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorImplementation.KITE;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
@@ -1552,15 +1551,6 @@ public abstract class BaseSqoopTool extends org.apache.sqoop.tool.SqoopTool {
       throw new InvalidOptionsException("Hive import is not compatible with "
         + "importing into SequenceFile format.");
     }
-
-    // Hive import and create hive table not compatible for ParquetFile format when using Kite
-    if (options.doHiveImport()
-        && options.doFailIfHiveTableExists()
-        && options.getFileLayout() == SqoopOptions.FileLayout.ParquetFile
-        && options.getParquetConfiguratorImplementation() == KITE) {
-      throw new InvalidOptionsException("Hive import and create hive table is not compatible with "
-        + "importing into ParquetFile format using Kite.");
-      }
 
     if (options.doHiveImport()
         && options.getIncrementalMode().equals(IncrementalMode.DateLastModified)) {

@@ -18,9 +18,6 @@
 
 package org.apache.sqoop;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.sqoop.testutil.ExportJobTestCase;
 import com.google.common.collect.Lists;
@@ -32,8 +29,6 @@ import org.junit.Rule;
 
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import parquet.avro.AvroParquetWriter;
 
 import java.io.IOException;
@@ -44,7 +39,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,7 +55,6 @@ import static parquet.hadoop.metadata.CompressionCodecName.SNAPPY;
 /**
  * Test that we can export Parquet Data Files from HDFS into databases.
  */
-@RunWith(Parameterized.class)
 public class TestParquetExport extends ExportJobTestCase {
 
   @Parameterized.Parameters(name = "parquetImplementation = {0}")
@@ -71,12 +64,6 @@ public class TestParquetExport extends ExportJobTestCase {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
-
-  private final String parquetImplementation;
-
-  public TestParquetExport(String parquetImplementation) {
-    this.parquetImplementation = parquetImplementation;
-  }
 
   /**
    * @return an argv for the CodeGenTool to use when creating tables to export.
@@ -147,8 +134,6 @@ public class TestParquetExport extends ExportJobTestCase {
 
   /**
    * Create a data file that gets exported to the db.
-   * Sqoop uses Kite to export Parquet files so it requires a Kite metadata directory to be present next to the files
-   * but since we do not use Kite in our test cases anymore we generate the .metadata directory here.
    * @param numRecords how many records to write to the file.
    */
   protected void createParquetFile(int numRecords,
@@ -156,7 +141,6 @@ public class TestParquetExport extends ExportJobTestCase {
 
     Schema schema = buildSchema(extraCols);
 
-    createMetadataDir(schema);
     String fileName = UUID.randomUUID().toString() + ".parquet";
     Path filePath = new Path(getTablePath(), fileName);
     try (AvroParquetWriter parquetWriter = new AvroParquetWriter(filePath, schema, SNAPPY, DEFAULT_BLOCK_SIZE, DEFAULT_PAGE_SIZE)) {
@@ -167,25 +151,6 @@ public class TestParquetExport extends ExportJobTestCase {
         addExtraColumns(record, i, extraCols);
         parquetWriter.write(record);
       }
-    }
-  }
-
-  private void createMetadataDir(Schema schema) throws IOException {
-    final String descriptorFileTemplate = "location=file\\:%s\n" +
-        "    version=1\n" +
-        "    compressionType=snappy\n" +
-        "    format=parquet\n";
-    Path metadataDirPath = new Path(getTablePath(), ".metadata");
-    Path schemaFile = new Path(metadataDirPath, "schema.avsc");
-    Path descriptorFile = new Path(metadataDirPath, "descriptor.properties");
-    FileSystem fileSystem = getTablePath().getFileSystem(new Configuration());
-    fileSystem.mkdirs(metadataDirPath);
-
-    try (FSDataOutputStream fileOs = fileSystem.create(schemaFile)) {
-      fileOs.write(schema.toString().getBytes());
-    }
-    try (FSDataOutputStream fileOs = fileSystem.create(descriptorFile)) {
-      fileOs.write(String.format(descriptorFileTemplate, getTablePath()).getBytes());
     }
   }
 
