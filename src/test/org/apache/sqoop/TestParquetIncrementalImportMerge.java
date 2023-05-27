@@ -24,16 +24,14 @@ import org.apache.sqoop.util.ParquetReader;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import parquet.hadoop.metadata.CompressionCodecName;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Arrays.asList;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_HADOOP;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY;
 import static org.junit.Assert.assertEquals;
-import static parquet.hadoop.metadata.CompressionCodecName.GZIP;
+import static org.apache.parquet.hadoop.metadata.CompressionCodecName.GZIP;
 
 public class TestParquetIncrementalImportMerge extends ImportJobTestCase {
 
@@ -46,26 +44,26 @@ public class TestParquetIncrementalImportMerge extends ImportJobTestCase {
   private static final String NEW_RECORDS_TIMESTAMP = "2018-06-14 16:00:00.000";
 
   private static final List<List<Object>> INITIAL_RECORDS = Arrays.<List<Object>>asList(
-      Arrays.<Object>asList(2006, "Germany", "Italy", INITIAL_RECORDS_TIMESTAMP),
-      Arrays.<Object>asList(2014, "Brazil", "Hungary", INITIAL_RECORDS_TIMESTAMP)
+          Arrays.<Object>asList(2006, "Germany", "Italy", INITIAL_RECORDS_TIMESTAMP),
+          Arrays.<Object>asList(2014, "Brazil", "Hungary", INITIAL_RECORDS_TIMESTAMP)
   );
 
   private static final List<Object> ALTERNATIVE_INITIAL_RECORD = Arrays.<Object>asList(1, 2, 3, INITIAL_RECORDS_TIMESTAMP);
 
   private static final List<List<Object>> NEW_RECORDS = Arrays.<List<Object>>asList(
-      Arrays.<Object>asList(2010, "South Africa", "Spain", NEW_RECORDS_TIMESTAMP),
-      Arrays.<Object>asList(2014, "Brazil", "Germany", NEW_RECORDS_TIMESTAMP)
+          Arrays.<Object>asList(2010, "South Africa", "Spain", NEW_RECORDS_TIMESTAMP),
+          Arrays.<Object>asList(2014, "Brazil", "Germany", NEW_RECORDS_TIMESTAMP)
   );
 
   private static final List<String> EXPECTED_MERGED_RECORDS = asList(
-      "2006,Germany,Italy," + timeFromString(INITIAL_RECORDS_TIMESTAMP),
-      "2010,South Africa,Spain," + timeFromString(NEW_RECORDS_TIMESTAMP),
-      "2014,Brazil,Germany," + timeFromString(NEW_RECORDS_TIMESTAMP)
+          "2006,Germany,Italy," + timeFromString(INITIAL_RECORDS_TIMESTAMP),
+          "2010,South Africa,Spain," + timeFromString(NEW_RECORDS_TIMESTAMP),
+          "2014,Brazil,Germany," + timeFromString(NEW_RECORDS_TIMESTAMP)
   );
 
   private static final List<String> EXPECTED_INITIAL_RECORDS = asList(
-      "2006,Germany,Italy," + timeFromString(INITIAL_RECORDS_TIMESTAMP),
-      "2014,Brazil,Hungary," + timeFromString(INITIAL_RECORDS_TIMESTAMP)
+          "2006,Germany,Italy," + timeFromString(INITIAL_RECORDS_TIMESTAMP),
+          "2014,Brazil,Hungary," + timeFromString(INITIAL_RECORDS_TIMESTAMP)
   );
 
   @Rule
@@ -127,13 +125,13 @@ public class TestParquetIncrementalImportMerge extends ImportJobTestCase {
   @Test
   public void testMergedFilesHaveCorrectCodec() throws Exception {
     String[] args = initialImportArgs(getConnectString(), getTableName(), getTablePath().toString())
-        .withOption("compression-codec", "snappy")
-        .build();
+            .withOption("compression-codec", "snappy")
+            .build();
     runImport(args);
 
     args = incrementalImportArgs(getConnectString(), getTableName(), getTablePath().toString(), getColName(3), getColName(0), INITIAL_RECORDS_TIMESTAMP)
-        .withOption("compression-codec", "gzip")
-        .build();
+            .withOption("compression-codec", "gzip")
+            .build();
     runImport(args);
 
     CompressionCodecName compressionCodec = new ParquetReader(getTablePath()).getCodec();
@@ -142,19 +140,19 @@ public class TestParquetIncrementalImportMerge extends ImportJobTestCase {
 
   private ArgumentArrayBuilder initialImportArgs(String connectString, String tableName, String targetDir) {
     return new ArgumentArrayBuilder()
-        .withProperty(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY, PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_HADOOP)
-        .withOption("connect", connectString)
-        .withOption("table", tableName)
-        .withOption("num-mappers", "1")
-        .withOption("target-dir", targetDir)
-        .withOption("as-parquetfile");
+            .withProperty("parquetjob.configurator.implementation", "hadoop")
+            .withOption("connect", connectString)
+            .withOption("table", tableName)
+            .withOption("num-mappers", "1")
+            .withOption("target-dir", targetDir)
+            .withOption("as-parquetfile");
   }
 
   private ArgumentArrayBuilder incrementalImportArgs(String connectString, String tableName, String targetDir, String checkColumn, String mergeKey, String lastValue) {
     return initialImportArgs(connectString, tableName, targetDir)
-        .withOption("incremental", "lastmodified")
-        .withOption("check-column", checkColumn)
-        .withOption("merge-key", mergeKey)
-        .withOption("last-value", lastValue);
+            .withOption("incremental", "lastmodified")
+            .withOption("check-column", checkColumn)
+            .withOption("merge-key", mergeKey)
+            .withOption("last-value", lastValue);
   }
 }

@@ -34,6 +34,7 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.sqoop.SqoopJobDataPublisher;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,6 +46,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
+import java.util.TimeZone;
 
 import static org.apache.commons.lang3.StringUtils.wrap;
 import static org.junit.Assert.fail;
@@ -70,7 +72,7 @@ public abstract class BaseSqoopTestCase {
   }
 
   public static final Log LOG = LogFactory.getLog(
-      BaseSqoopTestCase.class.getName());
+          BaseSqoopTestCase.class.getName());
 
   public static boolean isOnPhysicalCluster() {
     return onPhysicalCluster;
@@ -81,22 +83,8 @@ public abstract class BaseSqoopTestCase {
 
   private static boolean onPhysicalCluster = false;
 
-  /** Base directory for all temporary data. */
-  public static final String TEMP_BASE_DIR;
-
-  /** Where to import table data to in the local filesystem for testing. */
-  public static final String LOCAL_WAREHOUSE_DIR;
-
-  // Initializer for the above
-  static {
-    String tmpDir = System.getProperty("test.build.data", "/tmp/");
-    if (!tmpDir.endsWith(File.separator)) {
-      tmpDir = tmpDir + File.separator;
-    }
-
-    TEMP_BASE_DIR = tmpDir;
-    LOCAL_WAREHOUSE_DIR = TEMP_BASE_DIR + "sqoop/warehouse";
-  }
+  public static final String MAP_OUTPUT_FILE_00001 = "part-m-00001";
+  public static final String REDUCE_OUTPUT_FILE_00000 = "part-r-00000";
 
   // Used if a test manually sets the table name to be used.
   private String curTableName;
@@ -129,7 +117,7 @@ public abstract class BaseSqoopTestCase {
   }
 
   protected String getWarehouseDir() {
-    return LOCAL_WAREHOUSE_DIR;
+    return getLocalWarehouseDir();
   }
 
   private String [] colNames;
@@ -153,6 +141,9 @@ public abstract class BaseSqoopTestCase {
     return manager;
   }
 
+  protected void setManager(ConnManager manager) {
+    this.manager = manager;
+  }
 
   /**
    * @return a connection to the database under test.
@@ -211,10 +202,13 @@ public abstract class BaseSqoopTestCase {
   public void setUp() {
     // The assumption is that correct HADOOP configuration will have it set to
     // hdfs://namenode
+    resetDefaultTimeZone();
     setOnPhysicalCluster(
-        !CommonArgs.LOCAL_FS.equals(System.getProperty(
-            CommonArgs.FS_DEFAULT_NAME)));
+            !CommonArgs.LOCAL_FS.equals(System.getProperty(
+                    CommonArgs.FS_DEFAULT_NAME)));
     incrementTableNum();
+
+    SqoopOptions.clearNonceDir();
 
     if (!isLog4jConfigured) {
       BasicConfigurator.configure();
@@ -231,9 +225,9 @@ public abstract class BaseSqoopTestCase {
         fail("Got SQLException: " + StringUtils.stringifyException(sqlE));
       } catch (ClassNotFoundException cnfe) {
         LOG.error("Could not find class for db driver: "
-            + StringUtils.stringifyException(cnfe));
+                + StringUtils.stringifyException(cnfe));
         fail("Could not find class for db driver: "
-            + StringUtils.stringifyException(cnfe));
+                + StringUtils.stringifyException(cnfe));
       }
 
       manager = testServer.getManager();
@@ -249,7 +243,7 @@ public abstract class BaseSqoopTestCase {
         this.manager = f.getManager(new JobData(opts, new ImportTool()));
       } catch (IOException ioe) {
         fail("IOException instantiating manager: "
-            + StringUtils.stringifyException(ioe));
+                + StringUtils.stringifyException(ioe));
       }
     }
   }
@@ -302,7 +296,7 @@ public abstract class BaseSqoopTestCase {
     Connection conn = getManager().getConnection();
     String dropStatement = dropTableIfExistsCommand(table);
     PreparedStatement statement = conn.prepareStatement(dropStatement,
-        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     try {
       statement.executeUpdate();
       conn.commit();
@@ -315,17 +309,25 @@ public abstract class BaseSqoopTestCase {
     return "DROP TABLE " + manager.escapeTableName(table) + " IF EXISTS";
   }
 
+  protected void createTableWithColTypesAndNames(String[] colNames,
+                                                 String[] colTypes,
+                                                 String[] vals) {
+    createTableWithColTypesAndNames(getTableName(), colNames, colTypes, vals);
+  }
+
   protected void createTableWithColTypesAndNames(String[] colNames, String[] colTypes, List<Object> record) {
     createTableWithColTypesAndNames(getTableName(), colNames, colTypes, toStringArray(record));
   }
 
   /**
    * Create a table with a set of columns with their names and add a row of values.
+   * @param newTableName The name of the new table
    * @param colNames Column names
    * @param colTypes the types of the columns to make
    * @param vals the SQL text for each value to insert
    */
-  protected void createTableWithColTypesAndNames(String[] colNames,
+  protected void createTableWithColTypesAndNames(String newTableName,
+                                                 String[] colNames,
                                                  String[] colTypes,
                                                  String[] vals) {
     assert colNames != null;
@@ -339,7 +341,7 @@ public abstract class BaseSqoopTestCase {
 
     try {
       try {
-        dropTableIfExists(getTableName());
+        dropTableIfExists(newTableName);
 
         conn = getManager().getConnection();
 
@@ -349,16 +351,15 @@ public abstract class BaseSqoopTestCase {
             columnDefStr += ", ";
           }
         }
-
-        createTableStr = "CREATE TABLE " + manager.escapeTableName(getTableName()) + "(" + columnDefStr + ")";
+        createTableStr = "CREATE TABLE " + manager.escapeTableName(newTableName) + "(" + columnDefStr + ")";
         LOG.info("Creating table: " + createTableStr);
         statement = conn.prepareStatement(
-            createTableStr,
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                createTableStr,
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         statement.executeUpdate();
       } catch (SQLException sqlException) {
         fail("Could not create table: "
-            + StringUtils.stringifyException(sqlException));
+                + StringUtils.stringifyException(sqlException));
       } finally {
         if (null != statement) {
           try {
@@ -384,16 +385,16 @@ public abstract class BaseSqoopTestCase {
           }
         }
         try {
-          String insertValsStr = "INSERT INTO " + manager.escapeTableName(getTableName()) + "(" + columnListStr + ")"
-              + " VALUES(" + valueListStr + ")";
+          String insertValsStr = "INSERT INTO " + manager.escapeTableName(newTableName) + "(" + columnListStr + ")"
+                  + " VALUES(" + valueListStr + ")";
           LOG.info("Inserting values: " + insertValsStr);
           statement = conn.prepareStatement(
-              insertValsStr,
-              ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                  insertValsStr,
+                  ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
           statement.executeUpdate();
         } catch (SQLException sqlException) {
           fail("Could not insert into table: "
-              + StringUtils.stringifyException(sqlException));
+                  + StringUtils.stringifyException(sqlException));
         } finally {
           if (null != statement) {
             try {
@@ -425,77 +426,6 @@ public abstract class BaseSqoopTestCase {
     insertIntoTable(null, colTypes, vals);
   }
 
-  protected void insertIntoTable(String[] columns, String[] colTypes, String[] vals) {
-    assert colTypes != null;
-    assert colTypes.length == vals.length;
-
-    Connection conn = null;
-    PreparedStatement statement = null;
-
-    String[] colNames = new String[vals.length];
-    for( int i = 0; i < vals.length; i++) {
-      colNames[i] = BASE_COL_NAME + Integer.toString(i);
-    }
-    else {
-      colNames = columns;
-    }
-
-    try {
-        conn = getManager().getConnection();
-        for (int count=0; vals != null && count < vals.length/colTypes.length;
-              ++count ) {
-         String columnListStr = "";
-         String valueListStr = "";
-         for (int i = 0; i < colTypes.length; i++) {
-           columnListStr += manager.escapeColName(colNames[i].toUpperCase());
-           valueListStr += vals[count * colTypes.length + i];
-           if (i < colTypes.length - 1) {
-             columnListStr += ", ";
-             valueListStr += ", ";
-           }
-         }
-         try {
-           String insertValsStr = "INSERT INTO " + manager.escapeTableName(getTableName()) + "(" + columnListStr + ")"
-               + " VALUES(" + valueListStr + ")";
-           LOG.info("Inserting values: " + insertValsStr);
-           statement = conn.prepareStatement(
-               insertValsStr,
-               ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
-           statement.executeUpdate();
-         } catch (SQLException sqlException) {
-           fail("Could not insert into table: "
-               + StringUtils.stringifyException(sqlException));
-         } finally {
-           if (null != statement) {
-             try {
-               statement.close();
-             } catch (SQLException se) {
-               // Ignore exception on close.
-             }
-
-             statement = null;
-           }
-         }
-       }
-    conn.commit();
-    this.colNames = colNames;
-    } catch (SQLException se) {
-      if (null != conn) {
-        try {
-          conn.close();
-        } catch (SQLException connSE) {
-          // Ignore exception on close.
-       }
-      }
-      fail("Could not create table: " + StringUtils.stringifyException(se));
-    }
-
-  }
-
-  protected void insertIntoTable(String[] columns, String[] colTypes, List<Object> record) {
-    insertIntoTable(columns, colTypes, toStringArray(record));
-  }
-
   protected void insertIntoTable(String[] colTypes, List<Object> record) {
     insertIntoTable(null, colTypes, toStringArray(record));
   }
@@ -506,39 +436,86 @@ public abstract class BaseSqoopTestCase {
     }
   }
 
-
-  public static long timeFromString(String timeStampString) {
-    try {
-      SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-      return format.parse(timeStampString).getTime();
-    } catch (ParseException e) {
-      throw new RuntimeException(e);
+  protected void insertRecordsIntoTableWithColTypesAndNames(String[] columns, String[] colTypes, List<List<Object>> records) {
+    for (List<Object> record : records) {
+      insertIntoTable(columns, colTypes, record);
     }
   }
 
-  protected void clearTable(String tableName) throws SQLException {
-    String truncateCommand = "DELETE FROM " + tableName;
-    Connection conn = getManager().getConnection();
-    try (PreparedStatement statement = conn.prepareStatement(truncateCommand)){
-      statement.executeUpdate();
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
-    }
+  protected void insertIntoTable(String[] columns, String[] colTypes, List<Object> record) {
+    insertIntoTable(columns, colTypes, toStringArray(record));
   }
 
-  private String[] toStringArray(List<Object> columnValues) {
-    String[] result = new String[columnValues.size()];
+  protected void insertIntoTable(String[] columns, String[] colTypes, String[] vals) {
+    assert colTypes != null;
+    assert colTypes.length == vals.length;
 
-    for (int i = 0; i < columnValues.size(); i++) {
-      if (columnValues.get(i) instanceof String) {
-        result[i] = wrap((String) columnValues.get(i), '\'');
-      } else {
-        result[i] = columnValues.get(i).toString();
+    Connection conn = null;
+    PreparedStatement statement = null;
+
+    String[] colNames;
+    if (columns == null){
+      colNames = new String[vals.length];
+      for( int i = 0; i < vals.length; i++) {
+        colNames[i] = BASE_COL_NAME + Integer.toString(i);
       }
     }
+    else {
+      colNames = columns;
+    }
 
-    return result;
+    try {
+      conn = getManager().getConnection();
+      for (int count=0; vals != null && count < vals.length/colTypes.length;
+           ++count ) {
+        String columnListStr = "";
+        String valueListStr = "";
+        for (int i = 0; i < colTypes.length; i++) {
+          columnListStr += manager.escapeColName(colNames[i].toUpperCase());
+          valueListStr += vals[count * colTypes.length + i];
+          if (i < colTypes.length - 1) {
+            columnListStr += ", ";
+            valueListStr += ", ";
+          }
+        }
+        try {
+          String insertValsStr = "INSERT INTO " + manager.escapeTableName(getTableName()) + "(" + columnListStr + ")"
+                  + " VALUES(" + valueListStr + ")";
+          LOG.info("Inserting values: " + insertValsStr);
+          statement = conn.prepareStatement(
+                  insertValsStr,
+                  ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+          statement.executeUpdate();
+        } catch (SQLException sqlException) {
+          fail("Could not insert into table: "
+                  + StringUtils.stringifyException(sqlException));
+        } finally {
+          if (null != statement) {
+            try {
+              statement.close();
+            } catch (SQLException se) {
+              // Ignore exception on close.
+            }
+
+            statement = null;
+          }
+        }
+      }
+      conn.commit();
+      this.colNames = colNames;
+    } catch (SQLException se) {
+      if (null != conn) {
+        try {
+          conn.close();
+        } catch (SQLException connSE) {
+          // Ignore exception on close.
+        }
+      }
+      fail("Could not create table: " + StringUtils.stringifyException(se));
+    }
+
   }
+
   /**
    * update a table with a set of columns values for a given row.
    * @param colTypes the types of the columns to make
@@ -551,12 +528,9 @@ public abstract class BaseSqoopTestCase {
     Connection conn = null;
     PreparedStatement statement = null;
 
-    String[] colNames;
-    if (columns == null){
-      colNames = new String[vals.length];
-      for( int i = 0; i < vals.length; i++) {
-        colNames[i] = BASE_COL_NAME + Integer.toString(i);
-      }
+    String[] colNames = new String[vals.length];
+    for( int i = 0; i < vals.length; i++) {
+      colNames[i] = BASE_COL_NAME + Integer.toString(i);
     }
 
     try {
@@ -565,7 +539,7 @@ public abstract class BaseSqoopTestCase {
            ++count ) {
         String updateStr = "";
         for (int i = 1; i < colNames.length; i++) {
-	      updateStr += manager.escapeColName(colNames[i].toUpperCase()) + " = "+vals[count * colNames.length + i];
+          updateStr += manager.escapeColName(colNames[i].toUpperCase()) + " = "+vals[count * colNames.length + i];
           if (i < colNames.length - 1) {
             updateStr += ", ";
           }
@@ -575,12 +549,12 @@ public abstract class BaseSqoopTestCase {
           String updateValsStr = "UPDATE " + manager.escapeTableName(getTableName()) + " SET " + updateStr;
           LOG.info("updating values: " + updateValsStr);
           statement = conn.prepareStatement(
-                      updateValsStr,
-              ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                  updateValsStr,
+                  ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
           statement.executeUpdate();
         } catch (SQLException sqlException) {
           fail("Could not update table: "
-              + StringUtils.stringifyException(sqlException));
+                  + StringUtils.stringifyException(sqlException));
         } finally {
           if (null != statement) {
             try {
@@ -631,6 +605,13 @@ public abstract class BaseSqoopTestCase {
     }
   }
 
+  protected void createTableWithRecordsWithColTypesAndNames(String [] columns, String [] colTypes, List<List<Object>> records) {
+    createTableWithColTypesAndNames(columns, colTypes, records.get(0));
+    for (int i = 1; i < records.size(); i++) {
+      insertIntoTable(columns, colTypes, records.get(i));
+    }
+  }
+
   /**
    * Create a table with a single column and put a data element in it.
    * @param colType the type of the column to create
@@ -660,7 +641,7 @@ public abstract class BaseSqoopTestCase {
       // prior to running the MapReduce job.
       if (!DirUtil.deleteDir(tableDirFile)) {
         LOG.warn("Could not delete table directory: "
-            + tableDirFile.getAbsolutePath());
+                + tableDirFile.getAbsolutePath());
       }
     }
   }
@@ -682,5 +663,59 @@ public abstract class BaseSqoopTestCase {
     }
 
     return ObjectArrays.concat(entries, moreEntries, String.class);
+  }
+
+  protected void clearTable(String tableName) throws SQLException {
+    String truncateCommand = "DELETE FROM " + tableName;
+    Connection conn = getManager().getConnection();
+    try (PreparedStatement statement = conn.prepareStatement(truncateCommand)){
+      statement.executeUpdate();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private String[] toStringArray(List<Object> columnValues) {
+    String[] result = new String[columnValues.size()];
+
+    for (int i = 0; i < columnValues.size(); i++) {
+      if (columnValues.get(i) instanceof String) {
+        result[i] = wrap((String) columnValues.get(i), '\'');
+      } else {
+        result[i] = columnValues.get(i).toString();
+      }
+    }
+
+    return result;
+  }
+
+  public static long timeFromString(String timeStampString) {
+    try {
+      SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+      return format.parse(timeStampString).getTime();
+    } catch (ParseException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected void resetDefaultTimeZone() {
+    String timeZoneId = System.getProperty("user.timezone");
+    TimeZone defaultTimeZone = TimeZone.getTimeZone(timeZoneId);
+    TimeZone.setDefault(defaultTimeZone);
+  }
+
+  /** Base directory for all temporary data. */
+  public static String getTempBaseDir() {
+    String tmpDir = System.getProperty("test.build.data", "/tmp/");
+    if (!tmpDir.endsWith(File.separator)) {
+      tmpDir = tmpDir + File.separator;
+    }
+
+    return tmpDir;
+  }
+
+  /** Where to import table data to in the local filesystem for testing. */
+  public static String getLocalWarehouseDir() {
+    return getTempBaseDir() + "sqoop/warehouse";
   }
 }

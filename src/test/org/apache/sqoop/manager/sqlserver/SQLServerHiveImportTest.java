@@ -28,13 +28,12 @@ import org.apache.hadoop.util.StringUtils;
 
 import org.apache.sqoop.SqoopOptions;
 import org.apache.sqoop.hive.TestHiveImport;
+import org.apache.sqoop.testutil.CommonArgs;
 import org.apache.sqoop.tool.SqoopTool;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.experimental.categories.Category;
 
-import static java.lang.String.format;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE;
 import static org.junit.Assert.fail;
 
 /**
@@ -102,9 +101,9 @@ public class SQLServerHiveImportTest extends TestHiveImport {
   protected void dropTableIfExists(String table) throws SQLException {
     Connection conn = getManager().getConnection();
     String sqlStmt = "IF OBJECT_ID('" + table
-        + "') IS NOT NULL  DROP TABLE " + table;
+            + "') IS NOT NULL  DROP TABLE " + table;
     PreparedStatement statement = conn.prepareStatement(sqlStmt,
-        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     try {
       statement.executeUpdate();
       conn.commit();
@@ -146,7 +145,7 @@ public class SQLServerHiveImportTest extends TestHiveImport {
     ArrayList<String> args = new ArrayList<String>();
     System.out.println("Overridden getArgv is called..");
     if (includeHadoopFlags) {
-      args.add(format("-D%s=%s", PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY, PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE));
+      CommonArgs.addHadoopFlags(args);
     }
 
     if (null != moreArgs) {

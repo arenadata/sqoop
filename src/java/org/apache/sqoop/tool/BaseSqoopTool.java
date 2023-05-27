@@ -33,12 +33,10 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.sqoop.manager.SupportedManagers;
 import org.apache.sqoop.mapreduce.hcat.SqoopHCatUtilities;
 import org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactory;
-import org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider;
 import org.apache.sqoop.util.CredentialsUtil;
 import org.apache.sqoop.util.LoggingUtils;
 import org.apache.sqoop.util.password.CredentialProviderHelper;
@@ -1875,8 +1873,8 @@ public abstract class BaseSqoopTool extends org.apache.sqoop.tool.SqoopTool {
     }
   }
 
-  public ParquetJobConfiguratorFactory getParquetJobConfigurator(Configuration configuration) {
-    return ParquetJobConfiguratorFactoryProvider.createParquetJobConfiguratorFactory(configuration);
+  public ParquetJobConfiguratorFactory getParquetJobConfigurator(SqoopOptions sqoopOptions) {
+    return sqoopOptions.getParquetConfiguratorImplementation().createFactory();
   }
 }
 

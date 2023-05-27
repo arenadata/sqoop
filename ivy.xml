@@ -215,6 +215,10 @@ under the License.
       <artifact name="zookeeper" type="jar" />
     </dependency>
 
+    <dependency org="org.apache.hadoop" name="hadoop-minikdc" rev="${hadoop.version}" conf="test->default" />
+    <dependency org="org.assertj" name="assertj-core" rev="${assertj.version}"
+                conf="test->default"/>
+
     <dependency org="org.json" name="json" rev="${json.version}" 
       conf="runtime->default;redist->default">
       <artifact name="json" type="jar" />

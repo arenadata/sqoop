@@ -26,6 +26,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+
 import org.apache.sqoop.testutil.CommonArgs;
 import org.apache.sqoop.testutil.HsqldbTestServer;
 import org.apache.sqoop.manager.ConnManager;
@@ -52,7 +53,6 @@ import org.apache.sqoop.util.ParquetReader;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY;
 import static org.junit.Assert.fail;
 
 /**
@@ -61,7 +61,7 @@ import static org.junit.Assert.fail;
 public class TestMerge extends BaseSqoopTestCase {
 
   private static final Log LOG =
-      LogFactory.getLog(TestMerge.class.getName());
+          LogFactory.getLog(TestMerge.class.getName());
 
   protected ConnManager manager;
   protected Connection conn;
@@ -69,19 +69,17 @@ public class TestMerge extends BaseSqoopTestCase {
   public static final String SOURCE_DB_URL = "jdbc:hsqldb:mem:merge";
 
   private static final List<List<Integer>> initRecords = Arrays
-      .asList(Arrays.asList(new Integer(0), new Integer(0)),
-          Arrays.asList(new Integer(1), new Integer(42)));
+          .asList(Arrays.asList(new Integer(0), new Integer(0)),
+                  Arrays.asList(new Integer(1), new Integer(42)));
 
   private static final List<List<Integer>> newRecords = Arrays.asList(
-      Arrays.asList(new Integer(1), new Integer(43)),
-      Arrays.asList(new Integer(3), new Integer(313)));
+          Arrays.asList(new Integer(1), new Integer(43)),
+          Arrays.asList(new Integer(3), new Integer(313)));
 
   private static final List<List<Integer>> mergedRecords = Arrays.asList(
-      Arrays.asList(new Integer(0), new Integer(0)),
-      Arrays.asList(new Integer(1), new Integer(43)),
-      Arrays.asList(new Integer(3), new Integer(313)));
-
-  private String parquetJobConfiguratorImplementation = StringUtils.EMPTY;
+          Arrays.asList(new Integer(0), new Integer(0)),
+          Arrays.asList(new Integer(1), new Integer(43)),
+          Arrays.asList(new Integer(3), new Integer(313)));
 
   @Before
   public void setUp() {
@@ -106,7 +104,6 @@ public class TestMerge extends BaseSqoopTestCase {
       conf.set(CommonArgs.FS_DEFAULT_NAME, CommonArgs.LOCAL_FS);
     }
     conf.set("mapred.job.tracker", "local");
-    conf.set(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY, parquetJobConfiguratorImplementation);
     return conf;
   }
 
@@ -129,7 +126,7 @@ public class TestMerge extends BaseSqoopTestCase {
     }
 
     s = conn.prepareStatement("CREATE TABLE \"" + TABLE_NAME
-        + "\" (id INT NOT NULL PRIMARY KEY, val INT, LASTMOD timestamp)");
+            + "\" (id INT NOT NULL PRIMARY KEY, val INT, LASTMOD timestamp)");
     try {
       s.executeUpdate();
     } finally {
@@ -139,7 +136,7 @@ public class TestMerge extends BaseSqoopTestCase {
     for (List<Integer> record : records) {
       final String values = StringUtils.join(record, ", ");
       s = conn
-          .prepareStatement("INSERT INTO \"" + TABLE_NAME + "\" VALUES (" + values + ", now())");
+              .prepareStatement("INSERT INTO \"" + TABLE_NAME + "\" VALUES (" + values + ", now())");
       try {
         s.executeUpdate();
       } finally {
@@ -161,7 +158,7 @@ public class TestMerge extends BaseSqoopTestCase {
   }
 
   @Test
-  public void testParquetFileMergeHadoop() throws Exception {
+  public void testParquetFileMerge() throws Exception {
     runMergeTest(SqoopOptions.FileLayout.ParquetFile);
   }
 
@@ -207,7 +204,7 @@ public class TestMerge extends BaseSqoopTestCase {
 
     // Now merge the results!
     ClassLoaderStack.addJarFile(jarFileName, MERGE_CLASS_NAME);
-    Path warehouse = new Path(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR);
+    Path warehouse = new Path(getWarehouseDir());
     options = getSqoopOptions(newConf());
     options.setMergeOldPath(new Path(warehouse, OLD_PATH).toString());
     options.setMergeNewPath(new Path(warehouse, NEW_PATH).toString());
@@ -227,7 +224,7 @@ public class TestMerge extends BaseSqoopTestCase {
   }
 
   private void checkData(String dataDir, List<List<Integer>> records,
-      SqoopOptions.FileLayout fileLayout) throws Exception {
+                         SqoopOptions.FileLayout fileLayout) throws Exception {
     for (List<Integer> record : records) {
       assertRecordStartsWith(record, dataDir, fileLayout);
     }
@@ -235,7 +232,7 @@ public class TestMerge extends BaseSqoopTestCase {
 
   private boolean valueMatches(GenericRecord genericRecord, List<Integer> recordVals) {
     return recordVals.get(0).equals(genericRecord.get(0))
-        && recordVals.get(1).equals(genericRecord.get(1));
+            && recordVals.get(1).equals(genericRecord.get(1));
   }
 
   private void importData(String targetDir, SqoopOptions.FileLayout fileLayout) {
@@ -246,7 +243,7 @@ public class TestMerge extends BaseSqoopTestCase {
     options.setFileLayout(fileLayout);
     options.setDeleteMode(true);
 
-    Path warehouse = new Path(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR);
+    Path warehouse = new Path(getWarehouseDir());
     options.setTargetDir(new Path(warehouse, targetDir).toString());
 
     ImportTool importTool = new ImportTool();
@@ -262,7 +259,7 @@ public class TestMerge extends BaseSqoopTestCase {
    * that starts with 'prefix'
    */
   protected boolean checkTextFileForLine(FileSystem fs, Path p, List<Integer> record)
-      throws IOException {
+          throws IOException {
     final String prefix = StringUtils.join(record, ',');
     BufferedReader r = new BufferedReader(new InputStreamReader(fs.open(p)));
     try {
@@ -284,7 +281,7 @@ public class TestMerge extends BaseSqoopTestCase {
   }
 
   private boolean checkAvroFileForLine(FileSystem fs, Path p, List<Integer> record)
-      throws IOException {
+          throws IOException {
     SeekableInput in = new FsInput(p, new Configuration());
     DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
     FileReader<GenericRecord> reader = DataFileReader.openReader(in, datumReader);
@@ -311,7 +308,7 @@ public class TestMerge extends BaseSqoopTestCase {
   }
 
   protected boolean checkFileForLine(FileSystem fs, Path p, SqoopOptions.FileLayout fileLayout,
-      List<Integer> record) throws IOException {
+                                     List<Integer> record) throws IOException {
     boolean result = false;
     switch (fileLayout) {
       case TextFile:
@@ -332,9 +329,9 @@ public class TestMerge extends BaseSqoopTestCase {
    * 'prefix'.
    */
   protected boolean recordStartsWith(List<Integer> record, String dirName,
-      SqoopOptions.FileLayout fileLayout)
-      throws Exception {
-    Path warehousePath = new Path(LOCAL_WAREHOUSE_DIR);
+                                     SqoopOptions.FileLayout fileLayout)
+          throws Exception {
+    Path warehousePath = new Path(getWarehouseDir());
     Path targetPath = new Path(warehousePath, dirName);
 
     FileSystem fs = FileSystem.getLocal(new Configuration());
@@ -358,7 +355,7 @@ public class TestMerge extends BaseSqoopTestCase {
   }
 
   protected void assertRecordStartsWith(List<Integer> record, String dirName,
-      SqoopOptions.FileLayout fileLayout) throws Exception {
+                                        SqoopOptions.FileLayout fileLayout) throws Exception {
     if (!recordStartsWith(record, dirName, fileLayout)) {
       fail("No record found that starts with [" + StringUtils.join(record, ", ") + "] in " + dirName);
     }

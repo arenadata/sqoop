@@ -18,6 +18,7 @@
 
 package org.apache.sqoop;
 
+import org.apache.avro.util.Utf8;
 import org.apache.sqoop.testutil.CommonArgs;
 import org.apache.sqoop.testutil.HsqldbTestServer;
 import org.apache.sqoop.testutil.ImportJobTestCase;
@@ -39,16 +40,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.sqoop.avro.AvroUtil.getAvroSchemaFromParquetFile;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_HADOOP;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
 
 /**
  * Tests --as-parquetfile.
@@ -56,18 +52,7 @@ import static org.junit.Assume.assumeTrue;
 public class TestParquetImport extends ImportJobTestCase {
 
   public static final Log LOG = LogFactory
-      .getLog(TestParquetImport.class.getName());
-
-  @Parameters(name = "parquetImplementation = {0}")
-  public static Iterable<? extends Object> parquetImplementationParameters() {
-    return Arrays.asList(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE, PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_HADOOP);
-  }
-
-  private final String parquetImplementation;
-
-  public TestParquetImport(String parquetImplementation) {
-    this.parquetImplementation = parquetImplementation;
-  }
+          .getLog(TestParquetImport.class.getName());
 
   /**
    * Create the argv to pass to Sqoop.
@@ -75,7 +60,7 @@ public class TestParquetImport extends ImportJobTestCase {
    * @return the argv as an array of strings.
    */
   protected String[] getOutputArgv(boolean includeHadoopFlags,
-          String[] extraArgs) {
+                                   String[] extraArgs) {
     ArrayList<String> args = new ArrayList<String>();
 
     if (includeHadoopFlags) {
@@ -131,20 +116,17 @@ public class TestParquetImport extends ImportJobTestCase {
   }
 
   @Test
-  public void testHadoopGzipCompression() throws IOException {
+  public void testGzipCompression() throws IOException {
     runParquetImportTest("gzip");
   }
 
-  @Test
-  public void testKiteDeflateCompression() throws IOException {
-    assumeTrue(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE.equals(parquetImplementation));
-    // The current Kite-based Parquet writing implementation uses GZIP compression codec when Deflate is specified.
-    // See: org.kitesdk.data.spi.filesystem.ParquetAppender.getCompressionCodecName()
-    runParquetImportTest("deflate", "gzip");
-  }
-
+  /**
+   * This test case is added to document that the deflate codec is not supported with
+   * the Hadoop Parquet implementation so Sqoop throws an exception when it is specified.
+   * @throws IOException
+   */
   @Test(expected = IOException.class)
-  public void testHadoopDeflateCompression() throws IOException {
+  public void testDeflateCompression() throws IOException {
     runParquetImportTest("deflate");
   }
 
@@ -154,7 +136,7 @@ public class TestParquetImport extends ImportJobTestCase {
 
   private void runParquetImportTest(String codec, String expectedCodec) throws IOException {
     String[] types = {"BIT", "INTEGER", "BIGINT", "REAL", "DOUBLE", "VARCHAR(6)",
-        "VARBINARY(2)",};
+            "VARBINARY(2)",};
     String[] vals = {"true", "100", "200", "1.0", "2.0", "'s'", "'0102'", };
     createTableWithColTypes(types, vals);
 
@@ -184,7 +166,7 @@ public class TestParquetImport extends ImportJobTestCase {
     assertEquals("DATA_COL2", 200L, record1.get("DATA_COL2"));
     assertEquals("DATA_COL3", 1.0f, record1.get("DATA_COL3"));
     assertEquals("DATA_COL4", 2.0, record1.get("DATA_COL4"));
-    assertEquals("DATA_COL5", "s", record1.get("DATA_COL5"));
+    assertEquals("DATA_COL5", new Utf8("s"), record1.get("DATA_COL5"));
     Object object = record1.get("DATA_COL6");
     assertTrue(object instanceof ByteBuffer);
     ByteBuffer b = ((ByteBuffer) object);
@@ -210,7 +192,7 @@ public class TestParquetImport extends ImportJobTestCase {
 
     List<GenericRecord> genericRecords = new ParquetReader(getTablePath()).readAll();
     GenericRecord record1 = genericRecords.get(0);
-    assertEquals("DATA_COL0", "10", record1.get("DATA_COL0"));
+    assertEquals("DATA_COL0", new Utf8("10"), record1.get("DATA_COL0"));
     assertEquals(1, genericRecords.size());
   }
 
@@ -321,12 +303,5 @@ public class TestParquetImport extends ImportJobTestCase {
     assertEquals(Type.UNION, field.schema().getType());
     assertEquals(Type.NULL, field.schema().getTypes().get(0).getType());
     assertEquals(type, field.schema().getTypes().get(1).getType());
-  }
-
-  @Override
-  protected Configuration getConf() {
-    Configuration conf = super.getConf();
-    conf.set(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY, parquetImplementation);
-    return conf;
   }
 }

@@ -29,7 +29,7 @@ import org.junit.Rule;
 
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import parquet.avro.AvroParquetWriter;
+import org.apache.parquet.avro.AvroParquetWriter;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -42,25 +42,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_HADOOP;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static parquet.hadoop.ParquetWriter.DEFAULT_BLOCK_SIZE;
-import static parquet.hadoop.ParquetWriter.DEFAULT_PAGE_SIZE;
-import static parquet.hadoop.metadata.CompressionCodecName.SNAPPY;
+import static org.apache.parquet.hadoop.ParquetWriter.DEFAULT_BLOCK_SIZE;
+import static org.apache.parquet.hadoop.ParquetWriter.DEFAULT_PAGE_SIZE;
+import static org.apache.parquet.hadoop.metadata.CompressionCodecName.SNAPPY;
 
 
 /**
  * Test that we can export Parquet Data Files from HDFS into databases.
  */
 public class TestParquetExport extends ExportJobTestCase {
-
-  @Parameterized.Parameters(name = "parquetImplementation = {0}")
-  public static Iterable<? extends Object> parquetImplementationParameters() {
-    return Arrays.asList(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KITE, PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_HADOOP);
-  }
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -86,23 +78,23 @@ public class TestParquetExport extends ExportJobTestCase {
   }
 
   /** When generating data for export tests, each column is generated
-      according to a ColumnGenerator. Methods exist for determining
-      what to put into Parquet objects in the files to export, as well
-      as what the object representation of the column as returned by
-      the database should look like.
-    */
+   according to a ColumnGenerator. Methods exist for determining
+   what to put into Parquet objects in the files to export, as well
+   as what the object representation of the column as returned by
+   the database should look like.
+   */
   public interface ColumnGenerator {
     /** For a row with id rowNum, what should we write into that
-        Parquet record to export?
-      */
+     Parquet record to export?
+     */
     Object getExportValue(int rowNum);
 
     /** Return the Parquet schema for the field. */
     Schema getColumnParquetSchema();
 
     /** For a row with id rowNum, what should the database return
-        for the given column's value?
-      */
+     for the given column's value?
+     */
     Object getVerifyValue(int rowNum);
 
     /** Return the column type to put in the CREATE TABLE statement. */
@@ -110,8 +102,8 @@ public class TestParquetExport extends ExportJobTestCase {
   }
 
   private ColumnGenerator colGenerator(final Object exportValue,
-      final Schema schema, final Object verifyValue,
-      final String columnType) {
+                                       final Schema schema, final Object verifyValue,
+                                       final String columnType) {
     return new ColumnGenerator() {
       @Override
       public Object getVerifyValue(int rowNum) {
@@ -137,7 +129,7 @@ public class TestParquetExport extends ExportJobTestCase {
    * @param numRecords how many records to write to the file.
    */
   protected void createParquetFile(int numRecords,
-      ColumnGenerator... extraCols) throws IOException {
+                                   ColumnGenerator... extraCols) throws IOException {
 
     Schema schema = buildSchema(extraCols);
 
@@ -172,7 +164,7 @@ public class TestParquetExport extends ExportJobTestCase {
   }
 
   private void addExtraColumns(GenericRecord record, int rowNum,
-      ColumnGenerator[] extraCols) {
+                               ColumnGenerator[] extraCols) {
     int colNum = 0;
     if (null != extraCols) {
       for (ColumnGenerator gen : extraCols) {
@@ -213,15 +205,15 @@ public class TestParquetExport extends ExportJobTestCase {
   }
 
   /** Create the table definition to export to, removing any prior table.
-      By specifying ColumnGenerator arguments, you can add extra columns
-      to the table of arbitrary type.
+   By specifying ColumnGenerator arguments, you can add extra columns
+   to the table of arbitrary type.
    */
   private void createTable(ColumnGenerator... extraColumns)
-      throws SQLException {
+          throws SQLException {
     Connection conn = getConnection();
     PreparedStatement statement = conn.prepareStatement(
-        getDropTableStatement(getTableName()),
-        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            getDropTableStatement(getTableName()),
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     try {
       statement.executeUpdate();
       conn.commit();
@@ -242,7 +234,7 @@ public class TestParquetExport extends ExportJobTestCase {
     sb.append(")");
 
     statement = conn.prepareStatement(sb.toString(),
-        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     try {
       statement.executeUpdate();
       conn.commit();
@@ -258,7 +250,7 @@ public class TestParquetExport extends ExportJobTestCase {
   private void createTableWithInsert() throws SQLException {
     Connection conn = getConnection();
     PreparedStatement statement = conn.prepareStatement(getDropTableStatement(getTableName()),
-        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     try {
       statement.executeUpdate();
       conn.commit();
@@ -287,13 +279,13 @@ public class TestParquetExport extends ExportJobTestCase {
    * @param id the id column specifying the row to test.
    */
   private void assertColValForRowId(int id, String colName, Object expectedVal)
-      throws SQLException {
+          throws SQLException {
     Connection conn = getConnection();
     LOG.info("Verifying column " + colName + " has value " + expectedVal);
 
     PreparedStatement statement = conn.prepareStatement(
-        "SELECT \"" + colName + "\" FROM " + getTableName() + " WHERE \"ID\" = " + id,
-        ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+            "SELECT \"" + colName + "\" FROM " + getTableName() + " WHERE \"ID\" = " + id,
+            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     Object actualVal = null;
     try {
       ResultSet rs = statement.executeQuery();
@@ -315,16 +307,16 @@ public class TestParquetExport extends ExportJobTestCase {
   }
 
   /** Verify that for the max and min values of the 'id' column, the values
-      for a given column meet the expected values.
+   for a given column meet the expected values.
    */
   protected void assertColMinAndMax(String colName, ColumnGenerator generator)
-      throws SQLException {
+          throws SQLException {
     Connection conn = getConnection();
     int minId = getMinRowId(conn);
     int maxId = getMaxRowId(conn);
 
     LOG.info("Checking min/max for column " + colName + " with type "
-        + generator.getColumnType());
+            + generator.getColumnType());
 
     Object expectedMin = generator.getVerifyValue(minId);
     Object expectedMax = generator.getVerifyValue(maxId);
@@ -341,22 +333,22 @@ public class TestParquetExport extends ExportJobTestCase {
     byte[] b = new byte[] { (byte) 1, (byte) 2 };
     Schema fixed = Schema.createFixed("myfixed", null, null, 2);
     Schema enumeration = Schema.createEnum("myenum", null, null,
-        Lists.newArrayList("a", "b"));
+            Lists.newArrayList("a", "b"));
 
     ColumnGenerator[] gens = new ColumnGenerator[] {
-      colGenerator(true, Schema.create(Schema.Type.BOOLEAN), true, "BIT"),
-      colGenerator(100, Schema.create(Schema.Type.INT), 100, "INTEGER"),
-      colGenerator(200L, Schema.create(Schema.Type.LONG), 200L, "BIGINT"),
-      // HSQLDB maps REAL to double, not float:
-      colGenerator(1.0f, Schema.create(Schema.Type.FLOAT), 1.0d, "REAL"),
-      colGenerator(2.0d, Schema.create(Schema.Type.DOUBLE), 2.0d, "DOUBLE"),
-      colGenerator("s", Schema.create(Schema.Type.STRING), "s", "VARCHAR(8)"),
-      colGenerator(ByteBuffer.wrap(b), Schema.create(Schema.Type.BYTES),
-          b, "VARBINARY(8)"),
-      colGenerator(new GenericData.Fixed(fixed, b), fixed,
-          b, "BINARY(2)"),
-      colGenerator(new GenericData.EnumSymbol(enumeration, "a"), enumeration,
-          "a", "VARCHAR(8)"),
+            colGenerator(true, Schema.create(Schema.Type.BOOLEAN), true, "BIT"),
+            colGenerator(100, Schema.create(Schema.Type.INT), 100, "INTEGER"),
+            colGenerator(200L, Schema.create(Schema.Type.LONG), 200L, "BIGINT"),
+            // HSQLDB maps REAL to double, not float:
+            colGenerator(1.0f, Schema.create(Schema.Type.FLOAT), 1.0d, "REAL"),
+            colGenerator(2.0d, Schema.create(Schema.Type.DOUBLE), 2.0d, "DOUBLE"),
+            colGenerator("s", Schema.create(Schema.Type.STRING), "s", "VARCHAR(8)"),
+            colGenerator(ByteBuffer.wrap(b), Schema.create(Schema.Type.BYTES),
+                    b, "VARBINARY(8)"),
+            colGenerator(new GenericData.Fixed(fixed, b), fixed,
+                    b, "BINARY(2)"),
+            colGenerator(new GenericData.EnumSymbol(enumeration, "a"), enumeration,
+                    "a", "VARCHAR(8)"),
     };
     createParquetFile(TOTAL_RECORDS, gens);
     createTable(gens);
@@ -393,7 +385,7 @@ public class TestParquetExport extends ExportJobTestCase {
 
     Schema schema =  Schema.createRecord("nestedrecord", null, null, false);
     schema.setFields(Lists.newArrayList(buildField("myint",
-        Schema.Type.INT)));
+            Schema.Type.INT)));
     GenericRecord record = new GenericData.Record(schema);
     record.put("myint", 100);
     // DB type is not used so can be anything:
@@ -414,7 +406,7 @@ public class TestParquetExport extends ExportJobTestCase {
     // null column type means don't create a database column
     // the Parquet value will not be exported
     ColumnGenerator gen = colGenerator(100, Schema.create(Schema.Type.INT),
-        null, null);
+            null, null);
     createParquetFile(TOTAL_RECORDS, gen);
     createTable(gen);
     runExport(getArgv(true, 10, 10, newStrArray(argv, "-m", "" + 1)));
@@ -459,12 +451,5 @@ public class TestParquetExport extends ExportJobTestCase {
     thrown.expect(Exception.class);
     thrown.reportMissingExceptionWithMessage("Expected Exception on missing Parquet fields");
     runExport(getArgv(true, 10, 10, newStrArray(argv, "-m", "" + 1)));
-  }
-
-  @Override
-  protected Configuration getConf() {
-    Configuration conf = super.getConf();
-    conf.set(PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY, parquetImplementation);
-    return conf;
   }
 }

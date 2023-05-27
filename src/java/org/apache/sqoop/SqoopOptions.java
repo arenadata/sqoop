@@ -35,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.sqoop.accumulo.AccumuloConstants;
 import org.apache.sqoop.mapreduce.mainframe.MainframeConfiguration;
+import org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorImplementation;
 import org.apache.sqoop.tool.BaseSqoopTool;
 import org.apache.sqoop.util.CredentialsUtil;
 import org.apache.sqoop.util.LoggingUtils;
@@ -52,7 +53,7 @@ import org.apache.sqoop.util.StoredAsProperty;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.sqoop.Sqoop.SQOOP_RETHROW_PROPERTY;
-import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider.PARQUET_JOB_CONFIGURATOR_IMPLEMENTATION_KEY;
+import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorImplementation.HADOOP;
 import static org.apache.sqoop.orm.ClassWriter.toJavaIdentifier;
 
 /**
@@ -413,6 +414,8 @@ public class SqoopOptions implements Cloneable {
   @StoredAsProperty("hs2.keytab")
   private String hs2Keytab;
 
+  @StoredAsProperty("parquet.configurator.implementation")
+  private ParquetJobConfiguratorImplementation parquetConfiguratorImplementation;
 
   public SqoopOptions() {
     initDefaults(null);
@@ -2107,7 +2110,6 @@ public class SqoopOptions implements Cloneable {
 
   public void setConf(Configuration config) {
     this.conf = config;
-    ensureDefaultConfigurations(this.conf);
   }
 
   /**
@@ -2914,6 +2916,9 @@ public class SqoopOptions implements Cloneable {
   }
 
 
+  public ParquetJobConfiguratorImplementation getParquetConfiguratorImplementation() {
+    return parquetConfiguratorImplementation;
+  }
 
 }
 

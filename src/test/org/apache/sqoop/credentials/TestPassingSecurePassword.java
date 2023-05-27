@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Properties;
 
+import static org.apache.sqoop.SqoopOptions.DB_PASSWORD_KEY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -73,7 +74,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
 
   @Test
   public void testPasswordFilePathInOptionIsEnabled() throws Exception {
-    String passwordFilePath = TEMP_BASE_DIR + ".pwd";
+    String passwordFilePath = BaseSqoopTestCase.getTempBaseDir() + ".pwd";
     createTempFile(passwordFilePath);
 
     try {
@@ -86,7 +87,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
       ArrayList<String> argsList = new ArrayList<String>();
       Collections.addAll(argsList, commonArgs);
       assertTrue("passwordFilePath option missing.",
-        argsList.contains("--password-file"));
+              argsList.contains("--password-file"));
     } catch (Exception e) {
       fail("passwordPath option is missing.");
     }
@@ -97,7 +98,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
     try {
       ArrayList<String> extraArgs = new ArrayList<String>();
       extraArgs.add("--password-file");
-      extraArgs.add(TEMP_BASE_DIR + "unknown");
+      extraArgs.add(BaseSqoopTestCase.getTempBaseDir() + "unknown");
       String[] argv = getCommonArgs(false, extraArgs);
 
       Configuration conf = getConf();
@@ -107,7 +108,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
       fail("The password file does not exist!");
     } catch (Exception e) {
       assertTrue(e.getMessage().matches(".*The provided password file "
-        + ".* does not exist!"));
+              + ".* does not exist!"));
     }
   }
 
@@ -116,7 +117,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
     try {
       ArrayList<String> extraArgs = new ArrayList<String>();
       extraArgs.add("--password-file");
-      extraArgs.add(TEMP_BASE_DIR);
+      extraArgs.add(BaseSqoopTestCase.getTempBaseDir());
       String[] argv = getCommonArgs(false, extraArgs);
 
       Configuration conf = getConf();
@@ -126,13 +127,13 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
       fail("The password file cannot be a directory!");
     } catch (Exception e) {
       assertTrue(e.getMessage().matches(".*The provided password file .*"
-        + " is a directory!"));
+              + " is a directory!"));
     }
   }
 
   @Test
   public void testBothPasswordOptions() throws Exception {
-    String passwordFilePath = TEMP_BASE_DIR + ".pwd";
+    String passwordFilePath = BaseSqoopTestCase.getTempBaseDir() + ".pwd";
     createTempFile(passwordFilePath);
 
     try {
@@ -152,16 +153,16 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
       assertNotNull(out.getPassword());
       importTool.validateOptions(out);
       fail("Only one of password, password "
-          + "alias or path to a password file must be specified.");
+              + "alias or path to a password file must be specified.");
     } catch (Exception e) {
       assertTrue(e.getMessage().contains("Only one of password, password "
-          + "alias or path to a password file must be specified."));
+              + "alias or path to a password file must be specified."));
     }
   }
 
   @Test
   public void testPasswordFilePath() throws Exception {
-    String passwordFilePath = TEMP_BASE_DIR + ".pwd";
+    String passwordFilePath = BaseSqoopTestCase.getTempBaseDir() + ".pwd";
     createTempFile(passwordFilePath);
     writeToFile(passwordFilePath, "password");
 
@@ -189,17 +190,17 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
   public void testPasswordInDBConfiguration() throws Exception {
     JobConf jobConf = new JobConf(getConf());
     DBConfiguration.configureDB(jobConf, "org.hsqldb.jdbcDriver",
-      getConnectString(), "username", "password", null, null);
+            getConnectString(), "username", "password", null, null);
 
     assertNotNull(jobConf.getCredentials().getSecretKey(
-      new Text(DBConfiguration.PASSWORD_PROPERTY)));
+            new Text(DBConfiguration.PASSWORD_PROPERTY)));
     assertEquals("password", new String(jobConf.getCredentials().getSecretKey(
-      new Text(DBConfiguration.PASSWORD_PROPERTY))));
+            new Text(DBConfiguration.PASSWORD_PROPERTY))));
 
     // necessary to wipe the state of previous call to configureDB
     jobConf = new JobConf();
     DBConfiguration.configureDB(jobConf, "org.hsqldb.jdbcDriver",
-      getConnectString(), null, null, null, null);
+            getConnectString(), null, null, null, null);
     DBConfiguration dbConfiguration = new DBConfiguration(jobConf);
     Connection connection = dbConfiguration.getConnection();
     assertNotNull(connection);
@@ -209,15 +210,15 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
   public void testPasswordNotInJobConf() throws Exception {
     JobConf jobConf = new JobConf(getConf());
     DBConfiguration.configureDB(jobConf, "org.hsqldb.jdbcDriver",
-      getConnectString(), "username", "password", null, null);
+            getConnectString(), "username", "password", null, null);
 
     assertNull(jobConf.get(DBConfiguration.PASSWORD_PROPERTY, null));
   }
 
   @Test
   public void testPasswordInMetastoreWithRecordEnabledAndSecureOption()
-    throws Exception {
-    String passwordFilePath = TEMP_BASE_DIR + ".pwd";
+          throws Exception {
+    String passwordFilePath = BaseSqoopTestCase.getTempBaseDir() + ".pwd";
     createTempFile(passwordFilePath);
 
     ArrayList<String> extraArgs = new ArrayList<String>();
@@ -239,7 +240,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
     // this is what is used to record password into the metastore
     Properties propertiesIntoMetastore = out.writeProperties();
 
-    assertNull(propertiesIntoMetastore.getProperty("db.password"));
+    assertNull(propertiesIntoMetastore.getProperty(DB_PASSWORD_KEY));
     // password-file should NOT be null as it'll be sued to retrieve password
     assertNotNull(propertiesIntoMetastore.getProperty("db.password.file"));
 
@@ -253,8 +254,8 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
 
   @Test
   public void testPasswordInMetastoreWithRecordDisabledAndSecureOption()
-    throws Exception {
-    String passwordFilePath = TEMP_BASE_DIR + ".pwd";
+          throws Exception {
+    String passwordFilePath = BaseSqoopTestCase.getTempBaseDir() + ".pwd";
     createTempFile(passwordFilePath);
 
     ArrayList<String> extraArgs = new ArrayList<String>();
@@ -276,7 +277,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
     // this is what is used to record password into the metastore
     Properties propertiesIntoMetastore = out.writeProperties();
 
-    assertNull(propertiesIntoMetastore.getProperty("db.password"));
+    assertNull(propertiesIntoMetastore.getProperty(DB_PASSWORD_KEY));
     assertNotNull(propertiesIntoMetastore.getProperty("db.password.file"));
 
     // load the saved properties and verify
@@ -289,7 +290,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
 
   @Test
   public void testPasswordInMetastoreWithRecordEnabledAndNonSecureOption()
-    throws Exception {
+          throws Exception {
     ArrayList<String> extraArgs = new ArrayList<String>();
     extraArgs.add("--username");
     extraArgs.add("username");
@@ -309,7 +310,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
     // this is what is used to record password into the metastore
     Properties propertiesIntoMetastore = out.writeProperties();
 
-    assertNotNull(propertiesIntoMetastore.getProperty("db.password"));
+    assertNotNull(propertiesIntoMetastore.getProperty(DB_PASSWORD_KEY));
     assertNull(propertiesIntoMetastore.getProperty("db.password.file"));
 
     // load the saved properties and verify
@@ -348,21 +349,21 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
     Object[][] ciphers = {
 //      {"AES/CBC/NoPadding", 128},
 //      {"AES/CBC/PKCS5Padding", 128},
-      {"AES/ECB/NoPadding", 128},
-      {"AES/ECB/PKCS5Padding", 128},
+            {"AES/ECB/NoPadding", 128},
+            {"AES/ECB/PKCS5Padding", 128},
 //      {"DES/CBC/NoPadding", 56},
 //      {"DES/CBC/PKCS5Padding", 56},
-      {"DES/ECB/NoPadding", 64},
-      {"DES/ECB/PKCS5Padding", 64},
+            {"DES/ECB/NoPadding", 64},
+            {"DES/ECB/PKCS5Padding", 64},
 //      {"DESede/CBC/NoPadding", 168},
 //      {"DESede/CBC/PKCS5Padding", 168},
-      {"DESede/ECB/NoPadding", 192},
-      {"DESede/ECB/PKCS5Padding", 192}
+            {"DESede/ECB/NoPadding", 192},
+            {"DESede/ECB/PKCS5Padding", 192}
     };
 
     String [] passphrases = {
-      "Simple  password",
-      "!@#$%^&*()_+<>?:"
+            "Simple  password",
+            "!@#$%^&*()_+<>?:"
     };
 
     // Execute all ciphers with all pass phrases
@@ -376,16 +377,16 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
   @Test
   public void testCredentialProviderLoader() throws Exception {
     CredentialProviderPasswordLoader pl =
-        new CredentialProviderPasswordLoader();
+            new CredentialProviderPasswordLoader();
 
     if (!CredentialProviderHelper.isProviderAvailable()) {
       LOG.info("CredentialProvider facility not available "
-        + "in the hadoop environment used");
+              + "in the hadoop environment used");
     } else {
       String alias = "super.secret.alias";
       String pw = "super.secret.password";
 
-      String passwordFilePath = TEMP_BASE_DIR + ".pwd";
+      String passwordFilePath = BaseSqoopTestCase.getTempBaseDir() + ".pwd";
       String jksFile = "creds.jks";
       createTempFile(passwordFilePath);
       writeToFile(passwordFilePath, alias.getBytes());
@@ -393,7 +394,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
 
       Configuration conf = getConf();
       String ourUrl =  CredentialProviderHelper.SCHEME_NAME +
-        "://file/" + credDir.getAbsolutePath() + "/" + jksFile;
+              "://file/" + credDir.getAbsolutePath() + "/" + jksFile;
       File file = new File(credDir, jksFile);
       file.delete();
       conf.set(CredentialProviderHelper.CREDENTIAL_PROVIDER_PATH,
@@ -401,7 +402,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
       CredentialProviderHelper.createCredentialEntry(conf, alias, pw);
 
       conf.set("org.apache.sqoop.credentials.loader.class",
-        CredentialProviderPasswordLoader.class.getCanonicalName());
+              CredentialProviderPasswordLoader.class.getCanonicalName());
 
       ArrayList<String> extraArgs = new ArrayList<String>();
       extraArgs.add("--username");
@@ -422,11 +423,11 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
   @Test
   public void testPasswordAliasOption() throws Exception {
     CredentialProviderPasswordLoader pl =
-        new CredentialProviderPasswordLoader();
+            new CredentialProviderPasswordLoader();
 
     if (!CredentialProviderHelper.isProviderAvailable()) {
       LOG.info("CredentialProvider facility not available "
-        + "in the hadoop environment used");
+              + "in the hadoop environment used");
     } else {
       String alias = "super.secret.alias";
       String pw = "super.secret.password";
@@ -435,7 +436,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
 
       Configuration conf = getConf();
       String ourUrl =  CredentialProviderHelper.SCHEME_NAME +
-        "://file/" + credDir.getAbsolutePath() + "/" + jksFile;
+              "://file/" + credDir.getAbsolutePath() + "/" + jksFile;
       File file = new File(credDir, jksFile);
       file.delete();
       conf.set(CredentialProviderHelper.CREDENTIAL_PROVIDER_PATH,
@@ -459,7 +460,7 @@ public class TestPassingSecurePassword extends BaseSqoopTestCase {
 
   public void executeCipherTest(String password, String passphrase, String cipher, int keySize) throws Exception {
     LOG.info("Using cipher: " + cipher + " with keySize " + keySize + " and passphrase " + passphrase );
-    String passwordFilePath = TEMP_BASE_DIR + ".pwd";
+    String passwordFilePath = BaseSqoopTestCase.getTempBaseDir() + ".pwd";
     createTempFile(passwordFilePath);
     writeToFile(passwordFilePath, encryptPassword(password, passphrase, cipher, 10000, keySize));
     LOG.info("Generated encrypted password file in: " + passwordFilePath);

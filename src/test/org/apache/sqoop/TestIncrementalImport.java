@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.sqoop.metastore.SavedJobsTestBase;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -52,6 +53,7 @@ import org.apache.sqoop.metastore.AutoGenericJobStorage;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
 
@@ -64,11 +66,10 @@ import static org.junit.Assert.*;
  * The metastore URL is configured to be in-memory, and drop all
  * state between individual tests.
  */
-
 public class TestIncrementalImport  {
 
   public static final Log LOG = LogFactory.getLog(
-      TestIncrementalImport.class.getName());
+          TestIncrementalImport.class.getName());
 
   // What database do we read from.
   public static final String SOURCE_DB_URL = "jdbc:hsqldb:mem:incremental";
@@ -85,6 +86,7 @@ public class TestIncrementalImport  {
 
   public static void resetSourceDataSchema() throws SQLException {
     SqoopOptions options = new SqoopOptions();
+    SqoopOptions.clearNonceDir();
     options.setConnectString(SOURCE_DB_URL);
     options.setUsername(AUTO_STORAGE_USERNAME);
     options.setPassword(AUTO_STORAGE_PASSWORD);
@@ -142,7 +144,7 @@ public class TestIncrementalImport  {
    * Insert rows with id = [low, hi) into tableName.
    */
   private void insertIdRows(String tableName, int low, int hi)
-      throws SQLException {
+          throws SQLException {
     SqoopOptions options = new SqoopOptions();
     options.setConnectString(SOURCE_DB_URL);
     HsqldbManager manager = new HsqldbManager(options);
@@ -168,7 +170,7 @@ public class TestIncrementalImport  {
    * the timestamp column set to the specified ts.
    */
   private void insertIdTimestampRows(String tableName, int low, int hi,
-      Timestamp ts) throws SQLException {
+                                     Timestamp ts) throws SQLException {
     LOG.info("Inserting id rows in [" + low + ", " + hi + ") @ " + ts);
     SqoopOptions options = new SqoopOptions();
     options.setConnectString(SOURCE_DB_URL);
@@ -194,7 +196,7 @@ public class TestIncrementalImport  {
    * id converted to string.
    */
   private void insertIdVarcharRows(String tableName, int low, int hi)
-      throws SQLException {
+          throws SQLException {
     LOG.info("Inserting rows in [" + low + ", " + hi + ")");
     SqoopOptions options = new SqoopOptions();
     options.setConnectString(SOURCE_DB_URL);
@@ -217,7 +219,7 @@ public class TestIncrementalImport  {
    * Create a table with an 'id' column full of integers.
    */
   private void createIdTable(String tableName, int insertRows)
-      throws SQLException {
+          throws SQLException {
     SqoopOptions options = new SqoopOptions();
     options.setConnectString(SOURCE_DB_URL);
     HsqldbManager manager = new HsqldbManager(options);
@@ -238,7 +240,7 @@ public class TestIncrementalImport  {
    * last_modified column with timestamps.
    */
   private void createTimestampTable(String tableName, int insertRows,
-      Timestamp baseTime) throws SQLException {
+                                    Timestamp baseTime) throws SQLException {
     SqoopOptions options = new SqoopOptions();
     options.setConnectString(SOURCE_DB_URL);
     HsqldbManager manager = new HsqldbManager(options);
@@ -246,7 +248,7 @@ public class TestIncrementalImport  {
     PreparedStatement s = null;
     try {
       s = c.prepareStatement("CREATE TABLE " + manager.escapeTableName(tableName) + "(id INT NOT NULL, "
-          + "last_modified TIMESTAMP)");
+              + "last_modified TIMESTAMP)");
       s.executeUpdate();
       c.commit();
       insertIdTimestampRows(tableName, 0, insertRows, baseTime);
@@ -259,7 +261,7 @@ public class TestIncrementalImport  {
    * Create a table with an 'id' column of type varchar(20)
    */
   private void createIdVarcharTable(String tableName,
-       int insertRows) throws SQLException {
+                                    int insertRows) throws SQLException {
     SqoopOptions options = new SqoopOptions();
     options.setConnectString(SOURCE_DB_URL);
     HsqldbManager manager = new HsqldbManager(options);
@@ -275,18 +277,33 @@ public class TestIncrementalImport  {
     }
   }
 
+  private Path getTablePath(String tableName) {
+    Path warehouse = new Path(BaseSqoopTestCase.getLocalWarehouseDir());
+    return new Path(warehouse, tableName);
+  }
+
+  private FileSystem getLocalFileSystem() throws IOException {
+    return FileSystem.getLocal(new Configuration());
+  }
+
   /**
    * Delete all files in a directory for a table.
    */
   public void clearDir(String tableName) {
     try {
-      FileSystem fs = FileSystem.getLocal(new Configuration());
-      Path warehouse = new Path(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR);
-      Path tableDir = new Path(warehouse, tableName);
+      FileSystem fs = getLocalFileSystem();
+      Path tableDir = getTablePath(tableName);
       fs.delete(tableDir, true);
     } catch (Exception e) {
       fail("Got unexpected exception: " + StringUtils.stringifyException(e));
     }
+  }
+
+  public void createDir(String tableName) throws IOException {
+    FileSystem fs = FileSystem.getLocal(new Configuration());
+    Path warehouse = new Path(BaseSqoopTestCase.getLocalWarehouseDir());
+    Path tableDir = new Path(warehouse, tableName);
+    fs.mkdirs(tableDir);
   }
 
   /**
@@ -297,7 +314,7 @@ public class TestIncrementalImport  {
   public void assertDirOfNumbers(String tableName, int expectedNums) {
     try {
       FileSystem fs = FileSystem.getLocal(new Configuration());
-      Path warehouse = new Path(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR);
+      Path warehouse = new Path(BaseSqoopTestCase.getLocalWarehouseDir());
       Path tableDir = new Path(warehouse, tableName);
       FileStatus [] stats = fs.listStatus(tableDir);
       String [] fileNames = new String[stats.length];
@@ -315,7 +332,7 @@ public class TestIncrementalImport  {
         }
 
         BufferedReader r = new BufferedReader(
-            new InputStreamReader(fs.open(new Path(fileName))));
+                new InputStreamReader(fs.open(new Path(fileName))));
         try {
           while (true) {
             String s = r.readLine();
@@ -349,7 +366,7 @@ public class TestIncrementalImport  {
   public void assertDirOfNumbersAndTimestamps(String tableName, int expectedNums) {
     try {
       FileSystem fs = FileSystem.getLocal(new Configuration());
-      Path warehouse = new Path(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR);
+      Path warehouse = new Path(BaseSqoopTestCase.getLocalWarehouseDir());
       Path tableDir = new Path(warehouse, tableName);
       FileStatus [] stats = fs.listStatus(tableDir);
       String [] fileNames = new String[stats.length];
@@ -367,7 +384,7 @@ public class TestIncrementalImport  {
         }
 
         BufferedReader r = new BufferedReader(
-            new InputStreamReader(fs.open(new Path(fileName))));
+                new InputStreamReader(fs.open(new Path(fileName))));
         try {
           while (true) {
             String s = r.readLine();
@@ -400,7 +417,7 @@ public class TestIncrementalImport  {
   public void assertFirstSpecificNumber(String tableName, int val) {
     try {
       FileSystem fs = FileSystem.getLocal(new Configuration());
-      Path warehouse = new Path(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR);
+      Path warehouse = new Path(BaseSqoopTestCase.getLocalWarehouseDir());
       Path tableDir = new Path(warehouse, tableName);
       FileStatus [] stats = fs.listStatus(tableDir);
       String [] filePaths = new String[stats.length];
@@ -422,7 +439,7 @@ public class TestIncrementalImport  {
         }
 
         BufferedReader r = new BufferedReader(
-            new InputStreamReader(fs.open(new Path(filePath))));
+                new InputStreamReader(fs.open(new Path(filePath))));
         try {
           String s = r.readLine();
           if (null == s) {
@@ -453,7 +470,7 @@ public class TestIncrementalImport  {
   public void assertSpecificNumber(String tableName, int val) {
     try {
       FileSystem fs = FileSystem.getLocal(new Configuration());
-      Path warehouse = new Path(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR);
+      Path warehouse = new Path(BaseSqoopTestCase.getLocalWarehouseDir());
       Path tableDir = new Path(warehouse, tableName);
       FileStatus [] stats = fs.listStatus(tableDir);
       String [] filePaths = new String[stats.length];
@@ -475,7 +492,7 @@ public class TestIncrementalImport  {
         }
 
         BufferedReader r = new BufferedReader(
-            new InputStreamReader(fs.open(new Path(filePath))));
+                new InputStreamReader(fs.open(new Path(filePath))));
         try {
           String s = r.readLine();
           if (val == (int) Integer.valueOf(s.trim().split(",")[0])) {
@@ -500,7 +517,7 @@ public class TestIncrementalImport  {
       assertEquals("Failure during job", 0, ret);
     } catch (Exception e) {
       LOG.error("Got exception running Sqoop: "
-          + StringUtils.stringifyException(e));
+              + StringUtils.stringifyException(e));
       throw new RuntimeException(e);
     }
   }
@@ -509,7 +526,7 @@ public class TestIncrementalImport  {
    * Return a list of arguments to import the specified table.
    */
   private List<String> getArgListForTable(String tableName, boolean commonArgs,
-      boolean isAppend) {
+                                          boolean isAppend) {
     return getArgListForTable(tableName, commonArgs, isAppend, false);
   }
 
@@ -517,7 +534,7 @@ public class TestIncrementalImport  {
    * Return a list of arguments to import the specified table.
    */
   private List<String> getArgListForTable(String tableName, boolean commonArgs,
-      boolean isAppend, boolean appendTimestamp) {
+                                          boolean isAppend, boolean appendTimestamp) {
     List<String> args = new ArrayList<String>();
     if (commonArgs) {
       CommonArgs.addHadoopFlags(args);
@@ -527,7 +544,7 @@ public class TestIncrementalImport  {
     args.add("--table");
     args.add(tableName);
     args.add("--warehouse-dir");
-    args.add(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR);
+    args.add(BaseSqoopTestCase.getLocalWarehouseDir());
     if (isAppend) {
       args.add("--incremental");
       args.add("append");
@@ -557,7 +574,7 @@ public class TestIncrementalImport  {
    * @return
    */
   private List<String> getArgListForQuery(String query, String directoryName,
-    boolean commonArgs, boolean isAppend, boolean appendTimestamp) {
+                                          boolean commonArgs, boolean isAppend, boolean appendTimestamp) {
     List<String> args = new ArrayList<String>();
     if (commonArgs) {
       CommonArgs.addHadoopFlags(args);
@@ -573,8 +590,8 @@ public class TestIncrementalImport  {
     args.add("--class-name");
     args.add(className);
     args.add("--target-dir");
-    args.add(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR
-      + System.getProperty("file.separator") + directoryName);
+    args.add(BaseSqoopTestCase.getLocalWarehouseDir()
+            + System.getProperty("file.separator") + directoryName);
     if (isAppend) {
       args.add("--incremental");
       args.add("append");
@@ -610,7 +627,7 @@ public class TestIncrementalImport  {
    * as defaults.
    */
   private void createJob(String jobName, List<String> jobArgs,
-      Configuration conf) {
+                         Configuration conf) {
     try {
       SqoopOptions options = new SqoopOptions();
       options.setConf(conf);
@@ -627,7 +644,7 @@ public class TestIncrementalImport  {
       assertEquals("Failure to create job", 0, ret);
     } catch (Exception e) {
       LOG.error("Got exception running Sqoop to create job: "
-          + StringUtils.stringifyException(e));
+              + StringUtils.stringifyException(e));
       throw new RuntimeException(e);
     }
   }
@@ -656,7 +673,7 @@ public class TestIncrementalImport  {
       assertEquals("Failure to run job", 0, ret);
     } catch (Exception e) {
       LOG.error("Got exception running Sqoop to run job: "
-          + StringUtils.stringifyException(e));
+              + StringUtils.stringifyException(e));
       throw new RuntimeException(e);
     }
   }
@@ -750,7 +767,7 @@ public class TestIncrementalImport  {
     final String QUERY = "SELECT id FROM \"withQuery\" WHERE $CONDITIONS";
 
     List<String> args = getArgListForQuery(QUERY, TABLE_NAME,
-      false, true, false);
+            false, true, false);
     createJob(TABLE_NAME, args);
     runJob(TABLE_NAME);
     assertDirOfNumbers(TABLE_NAME, 0);
@@ -837,6 +854,25 @@ public class TestIncrementalImport  {
     runImport(options, args);
 
     assertDirOfNumbers(TABLE_NAME, 10);
+  }
+
+  @Test
+  public void testLastModifiedImportWithExistingOutputDirectoryFails() throws Exception {
+    final String TABLE_NAME = "failWithExistingOutputDirectory";
+
+    createDir(TABLE_NAME);
+
+    Timestamp thePast = new Timestamp(System.currentTimeMillis() - 100);
+    createTimestampTable(TABLE_NAME, 10, thePast);
+
+    List<String> args = getArgListForTable(TABLE_NAME, true, false);
+
+    SqoopOptions options = new SqoopOptions(newConf());
+    options.setThrowOnError(true);
+
+    thrown.expectMessage("--merge-key or --append is required when using --incremental lastmodified and the output directory exists.");
+    Sqoop sqoop = new Sqoop(new ImportTool(), options.getConf(), options);
+    ToolRunner.run(sqoop.getConf(), sqoop, args.toArray(new String[0]));
   }
 
   @Test
@@ -1074,7 +1110,7 @@ public class TestIncrementalImport  {
     final String QUERY = "SELECT id, last_modified FROM \"UpdateModifyWithTimestampWithQuery\" WHERE $CONDITIONS";
 
     List<String> args = getArgListForQuery(QUERY, TABLE_NAME,
-        true, false, false);
+            true, false, false);
 
     Configuration conf = newConf();
     SqoopOptions options = new SqoopOptions();
@@ -1211,7 +1247,7 @@ public class TestIncrementalImport  {
     // Configure the job to use the instrumented Hsqldb manager.
     Configuration conf = newConf();
     conf.set(ConnFactory.FACTORY_CLASS_NAMES_KEY,
-        InstrumentHsqldbManagerFactory.class.getName());
+            InstrumentHsqldbManagerFactory.class.getName());
 
     List<String> args = getArgListForTable(TABLE_NAME, false, false);
     args.add("--append");
@@ -1250,7 +1286,7 @@ public class TestIncrementalImport  {
     // Configure the job to use the instrumented Hsqldb manager.
     Configuration conf = newConf();
     conf.set(ConnFactory.FACTORY_CLASS_NAMES_KEY,
-        InstrumentHsqldbManagerFactory.class.getName());
+            InstrumentHsqldbManagerFactory.class.getName());
 
     List<String> args = getArgListForTable(TABLE_NAME, false, true, true);
     createJob(TABLE_NAME, args, conf);
@@ -1270,63 +1306,63 @@ public class TestIncrementalImport  {
     assertDirOfNumbers(TABLE_NAME, 20);
   }
   @Test
-	public void testIncrementalHiveAppendEmptyThenFull() throws Exception {
-		// This is to test Incremental Hive append feature. SQOOP-2470
-		final String TABLE_NAME = "incrementalHiveAppendEmptyThenFull";
-		Configuration conf = newConf();
-		conf.set(ConnFactory.FACTORY_CLASS_NAMES_KEY,
-				InstrumentHsqldbManagerFactory.class.getName());
-		clearDir(TABLE_NAME);
-		createIdTable(TABLE_NAME, 0);
-		List<String> args = new ArrayList<String>();
-		args.add("--connect");
-		args.add(SOURCE_DB_URL);
-		args.add("--table");
-		args.add(TABLE_NAME);
-		args.add("--warehouse-dir");
-		args.add(BaseSqoopTestCase.LOCAL_WAREHOUSE_DIR);
-		args.add("--hive-import");
-		args.add("--hive-table");
-		args.add(TABLE_NAME + "hive");
-		args.add("--incremental");
-		args.add("append");
-		args.add("--check-column");
-		args.add("ID");
-		args.add("-m");
-		args.add("1");
-		createJob(TABLE_NAME, args, conf);
-		HiveImport.setTestMode(true);
-		String hiveHome = org.apache.sqoop.SqoopOptions.getHiveHomeDefault();
-		assertNotNull("hive.home was not set", hiveHome);
-		String testDataPath = new Path(new Path(hiveHome), "scripts/"
-				+ "incrementalHiveAppendEmpty.q").toString();
-		System.clearProperty("expected.script");
-		System.setProperty("expected.script",
-				new File(testDataPath).getAbsolutePath());
-		runJob(TABLE_NAME);
-		assertDirOfNumbers(TABLE_NAME, 0);
-		// Now add some rows.
-		insertIdRows(TABLE_NAME, 0, 10);
-		String testDataPath10 = new Path(new Path(hiveHome), "scripts/"
-				+ "incrementalHiveAppend10.q").toString();
-		System.clearProperty("expected.script");
-		System.setProperty("expected.script",
-				new File(testDataPath10).getAbsolutePath());
-		System.getProperty("expected.script");
-		// Running the job a second time should import 10 rows.
-		runJob(TABLE_NAME);
-		assertDirOfNumbers(TABLE_NAME, 10);
-		// Add some more rows.
-		insertIdRows(TABLE_NAME, 10, 20);
-		String testDataPath20 = new Path(new Path(hiveHome), "scripts/"
-				+ "incrementalHiveAppend20.q").toString();
-		System.clearProperty("expected.script");
-		System.setProperty("expected.script",
-				new File(testDataPath20).getAbsolutePath());
-		// Import only those rows.
-		runJob(TABLE_NAME);
-		assertDirOfNumbers(TABLE_NAME, 20);
-	}
+  public void testIncrementalHiveAppendEmptyThenFull() throws Exception {
+    // This is to test Incremental Hive append feature. SQOOP-2470
+    final String TABLE_NAME = "incrementalHiveAppendEmptyThenFull";
+    Configuration conf = newConf();
+    conf.set(ConnFactory.FACTORY_CLASS_NAMES_KEY,
+            InstrumentHsqldbManagerFactory.class.getName());
+    clearDir(TABLE_NAME);
+    createIdTable(TABLE_NAME, 0);
+    List<String> args = new ArrayList<String>();
+    args.add("--connect");
+    args.add(SOURCE_DB_URL);
+    args.add("--table");
+    args.add(TABLE_NAME);
+    args.add("--warehouse-dir");
+    args.add(BaseSqoopTestCase.getLocalWarehouseDir());
+    args.add("--hive-import");
+    args.add("--hive-table");
+    args.add(TABLE_NAME + "hive");
+    args.add("--incremental");
+    args.add("append");
+    args.add("--check-column");
+    args.add("ID");
+    args.add("-m");
+    args.add("1");
+    createJob(TABLE_NAME, args, conf);
+    HiveImport.setTestMode(true);
+    String hiveHome = org.apache.sqoop.SqoopOptions.getHiveHomeDefault();
+    assertNotNull("hive.home was not set", hiveHome);
+    String testDataPath = new Path(new Path(hiveHome), "scripts/"
+            + "incrementalHiveAppendEmpty.q").toString();
+    System.clearProperty("expected.script");
+    System.setProperty("expected.script",
+            new File(testDataPath).getAbsolutePath());
+    runJob(TABLE_NAME);
+    assertDirOfNumbers(TABLE_NAME, 0);
+    // Now add some rows.
+    insertIdRows(TABLE_NAME, 0, 10);
+    String testDataPath10 = new Path(new Path(hiveHome), "scripts/"
+            + "incrementalHiveAppend10.q").toString();
+    System.clearProperty("expected.script");
+    System.setProperty("expected.script",
+            new File(testDataPath10).getAbsolutePath());
+    System.getProperty("expected.script");
+    // Running the job a second time should import 10 rows.
+    runJob(TABLE_NAME);
+    assertDirOfNumbers(TABLE_NAME, 10);
+    // Add some more rows.
+    insertIdRows(TABLE_NAME, 10, 20);
+    String testDataPath20 = new Path(new Path(hiveHome), "scripts/"
+            + "incrementalHiveAppend20.q").toString();
+    System.clearProperty("expected.script");
+    System.setProperty("expected.script",
+            new File(testDataPath20).getAbsolutePath());
+    // Import only those rows.
+    runJob(TABLE_NAME);
+    assertDirOfNumbers(TABLE_NAME, 20);
+  }
 
   // SQOOP-1890
   @Test

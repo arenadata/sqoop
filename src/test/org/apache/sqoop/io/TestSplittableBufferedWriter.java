@@ -35,10 +35,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.GzipCodec;
 
-import org.apache.sqoop.testutil.ImportJobTestCase;
+import org.apache.sqoop.testutil.BaseSqoopTestCase;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -53,15 +54,15 @@ import static org.junit.Assert.fail;
 public class TestSplittableBufferedWriter {
 
   public static final Log LOG = LogFactory.getLog(
-      TestSplittableBufferedWriter.class.getName());
+          TestSplittableBufferedWriter.class.getName());
 
   private String getWriteDir() {
-    return new File(ImportJobTestCase.TEMP_BASE_DIR,
-        "bufferedWriterTest").toString();
+    return new File(BaseSqoopTestCase.getTempBaseDir(),
+            "bufferedWriterTest").toString();
   }
 
   private Path getWritePath() {
-    return new Path(ImportJobTestCase.TEMP_BASE_DIR, "bufferedWriterTest");
+    return new Path(BaseSqoopTestCase.getTempBaseDir(), "bufferedWriterTest");
   }
 
   /** Create the directory where we'll write our test files to; and
@@ -78,7 +79,7 @@ public class TestSplittableBufferedWriter {
     for (FileStatus stat : stats) {
       if (stat.isDir()) {
         fail("setUp(): Write directory " + writeDir
-            + " contains subdirectories");
+                + " contains subdirectories");
       }
 
       LOG.debug("setUp(): Removing " + stat.getPath());
@@ -104,11 +105,11 @@ public class TestSplittableBufferedWriter {
   }
 
   /** Verifies contents of an InputStream. Closes the InputStream on
-    * its way out. Fails the test if the file doesn't match the expected set
-    * of lines.
-    */
+   * its way out. Fails the test if the file doesn't match the expected set
+   * of lines.
+   */
   private void verifyFileContents(InputStream is, String [] lines)
-      throws IOException {
+          throws IOException {
     BufferedReader r = new BufferedReader(new InputStreamReader(is));
     try {
       for (String expectedLine : lines) {
@@ -118,7 +119,7 @@ public class TestSplittableBufferedWriter {
       }
 
       assertNull("Stream had additional contents after expected line",
-          r.readLine());
+              r.readLine());
     } finally {
       r.close();
       try {
@@ -142,7 +143,7 @@ public class TestSplittableBufferedWriter {
   @Test
   public void testNonSplittingTextFile() throws IOException {
     SplittingOutputStream os  = new SplittingOutputStream(getConf(),
-        getWritePath(), "nonsplit-", 0, null);
+            getWritePath(), "nonsplit-", 0, null);
     try {
       SplittableBufferedWriter w = new SplittableBufferedWriter(os, true);
       try {
@@ -170,12 +171,12 @@ public class TestSplittableBufferedWriter {
 
     // Now ensure all the data got there.
     String [] expectedLines = {
-      "This is a string!",
-      "This is another string!",
+            "This is a string!",
+            "This is another string!",
     };
 
     InputStream fis = new FileInputStream(new File(getWriteDir(),
-          "nonsplit-00000"));
+            "nonsplit-00000"));
     try {
       verifyFileContents(fis, expectedLines);
     } finally {
@@ -190,7 +191,7 @@ public class TestSplittableBufferedWriter {
   @Test
   public void testNonSplittingGzipFile() throws IOException {
     SplittingOutputStream os  = new SplittingOutputStream(getConf(),
-        getWritePath(), "nonsplit-", 0, new GzipCodec());
+            getWritePath(), "nonsplit-", 0, new GzipCodec());
     SplittableBufferedWriter w = new SplittableBufferedWriter(os, true);
     try {
       w.allowSplit();
@@ -210,18 +211,18 @@ public class TestSplittableBufferedWriter {
 
     // Now ensure all the data got there.
     String [] expectedLines = {
-      "This is a string!",
-      "This is another string!",
+            "This is a string!",
+            "This is another string!",
     };
     verifyFileContents(
-        new GZIPInputStream(new FileInputStream(new File(getWriteDir(),
-        "nonsplit-00000.gz"))), expectedLines);
+            new GZIPInputStream(new FileInputStream(new File(getWriteDir(),
+                    "nonsplit-00000.gz"))), expectedLines);
   }
 
   @Test
   public void testSplittingTextFile() throws IOException {
     SplittingOutputStream os  = new SplittingOutputStream(getConf(),
-        getWritePath(), "split-", 10, null);
+            getWritePath(), "split-", 10, null);
     try {
       SplittableBufferedWriter w = new SplittableBufferedWriter(os, true);
       try {
@@ -250,10 +251,10 @@ public class TestSplittableBufferedWriter {
 
     // Now ensure all the data got there.
     String [] expectedLines0 = {
-      "This is a string!",
+            "This is a string!",
     };
     InputStream fis = new FileInputStream(new File(getWriteDir(),
-        "split-00000"));
+            "split-00000"));
     try {
       verifyFileContents(fis, expectedLines0);
     } finally {
@@ -265,7 +266,7 @@ public class TestSplittableBufferedWriter {
     }
 
     String [] expectedLines1 = {
-      "This is another string!",
+            "This is another string!",
     };
     fis = new FileInputStream(new File(getWriteDir(), "split-00001"));
     try {
@@ -282,7 +283,7 @@ public class TestSplittableBufferedWriter {
   @Test
   public void testSplittingGzipFile() throws IOException {
     SplittingOutputStream os = new SplittingOutputStream(getConf(),
-        getWritePath(), "splitz-", 3, new GzipCodec());
+            getWritePath(), "splitz-", 3, new GzipCodec());
     SplittableBufferedWriter w = new SplittableBufferedWriter(os, true);
     try {
       w.write("This is a string!");
@@ -302,17 +303,17 @@ public class TestSplittableBufferedWriter {
 
     // Now ensure all the data got there.
     String [] expectedLines0 = {
-      "This is a string!",
+            "This is a string!",
     };
     verifyFileContents(
-        new GZIPInputStream(new FileInputStream(new File(getWriteDir(),
-        "splitz-00000.gz"))), expectedLines0);
+            new GZIPInputStream(new FileInputStream(new File(getWriteDir(),
+                    "splitz-00000.gz"))), expectedLines0);
 
     String [] expectedLines1 = {
-      "This is another string!",
+            "This is another string!",
     };
     verifyFileContents(
-        new GZIPInputStream(new FileInputStream(new File(getWriteDir(),
-        "splitz-00001.gz"))), expectedLines1);
+            new GZIPInputStream(new FileInputStream(new File(getWriteDir(),
+                    "splitz-00001.gz"))), expectedLines1);
   }
 }
