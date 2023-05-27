@@ -41,6 +41,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
 
@@ -312,6 +314,10 @@ public abstract class BaseSqoopTestCase {
     return "DROP TABLE " + manager.escapeTableName(table) + " IF EXISTS";
   }
 
+  protected void createTableWithColTypesAndNames(String[] colNames, String[] colTypes, List<Object> record) {
+    createTableWithColTypesAndNames(getTableName(), colNames, colTypes, toStringArray(record));
+  }
+
   /**
    * Create a table with a set of columns with their names and add a row of values.
    * @param colNames Column names
@@ -482,13 +488,27 @@ public abstract class BaseSqoopTestCase {
 
   }
 
+  protected void insertIntoTable(String[] columns, String[] colTypes, List<Object> record) {
+    insertIntoTable(columns, colTypes, toStringArray(record));
+  }
+
   protected void insertIntoTable(String[] colTypes, List<Object> record) {
-    insertIntoTable(colTypes, toStringArray(record));
+    insertIntoTable(null, colTypes, toStringArray(record));
   }
 
   protected void insertRecordsIntoTable(String[] colTypes, List<List<Object>> records) {
     for (List<Object> record : records) {
       insertIntoTable(colTypes, record);
+    }
+  }
+
+
+  public static long timeFromString(String timeStampString) {
+    try {
+      SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+      return format.parse(timeStampString).getTime();
+    } catch (ParseException e) {
+      throw new RuntimeException(e);
     }
   }
 

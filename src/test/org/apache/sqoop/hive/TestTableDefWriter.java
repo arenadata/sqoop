@@ -36,6 +36,8 @@ import org.junit.rules.ExpectedException;
 
 import java.sql.Types;
 
+import static org.apache.sqoop.SqoopOptions.FileLayout.ParquetFile;
+import static org.apache.sqoop.mapreduce.parquet.ParquetConstants.SQOOP_PARQUET_AVRO_SCHEMA_KEY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -46,6 +48,10 @@ import static org.junit.Assert.assertTrue;
  * Test Hive DDL statement generation.
  */
 public class TestTableDefWriter {
+
+  private static final String TEST_AVRO_SCHEMA = "{\"type\":\"record\",\"name\":\"IMPORT_TABLE_1\",\"fields\":[{\"name\":\"C1_VARCHAR\",\"type\":[\"null\",\"string\"]},{\"name\":\"C2_INTEGER\",\"type\":[\"null\",\"int\"]},{\"name\":\"_3C_CHAR\",\"type\":[\"null\",\"string\"]}]}";
+
+  private static final String EXPECTED_CREATE_PARQUET_TABLE_STMNT = "CREATE TABLE IF NOT EXISTS `outputTable` ( `C1_VARCHAR` STRING, `C2_INTEGER` INT, `_3C_CHAR` STRING) STORED AS PARQUET";
 
   public static final Log LOG = LogFactory.getLog(
       TestTableDefWriter.class.getName());
@@ -293,5 +299,4 @@ public class TestTableDefWriter {
     assertNotNull(loadStmt);
     assertTrue(createTable.contains("`db`.`outputTable`"));
   }
-
 }
