@@ -42,7 +42,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 
+import static org.apache.commons.lang3.StringUtils.wrap;
 import static org.junit.Assert.fail;
 
 /**
@@ -480,6 +482,39 @@ public abstract class BaseSqoopTestCase {
 
   }
 
+  protected void insertIntoTable(String[] colTypes, List<Object> record) {
+    insertIntoTable(colTypes, toStringArray(record));
+  }
+
+  protected void insertRecordsIntoTable(String[] colTypes, List<List<Object>> records) {
+    for (List<Object> record : records) {
+      insertIntoTable(colTypes, record);
+    }
+  }
+
+  protected void clearTable(String tableName) throws SQLException {
+    String truncateCommand = "DELETE FROM " + tableName;
+    Connection conn = getManager().getConnection();
+    try (PreparedStatement statement = conn.prepareStatement(truncateCommand)){
+      statement.executeUpdate();
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private String[] toStringArray(List<Object> columnValues) {
+    String[] result = new String[columnValues.size()];
+
+    for (int i = 0; i < columnValues.size(); i++) {
+      if (columnValues.get(i) instanceof String) {
+        result[i] = wrap((String) columnValues.get(i), '\'');
+      } else {
+        result[i] = columnValues.get(i).toString();
+      }
+    }
+
+    return result;
+  }
   /**
    * update a table with a set of columns values for a given row.
    * @param colTypes the types of the columns to make
@@ -556,6 +591,17 @@ public abstract class BaseSqoopTestCase {
       colNames[i] = BASE_COL_NAME + Integer.toString(i);
     }
     createTableWithColTypesAndNames(colNames, colTypes, vals);
+  }
+
+  protected void createTableWithColTypes(String [] colTypes, List<Object> record) {
+    createTableWithColTypes(colTypes, toStringArray(record));
+  }
+
+  protected void createTableWithRecords(String [] colTypes, List<List<Object>> records) {
+    createTableWithColTypes(colTypes, records.get(0));
+    for (int i = 1; i < records.size(); i++) {
+      insertIntoTable(colTypes, records.get(i));
+    }
   }
 
   /**
