@@ -75,7 +75,6 @@ public class ImportAllTablesTool extends com.cloudera.sqoop.tool.ImportTool {
   @Override
   /** {@inheritDoc} */
   public int run(SqoopOptions options) {
-    HiveImport hiveImport = null;
     Set<String> excludes = new HashSet<String>();
 
     if (!init(options)) {
@@ -83,9 +82,6 @@ public class ImportAllTablesTool extends com.cloudera.sqoop.tool.ImportTool {
     }
 
     try {
-      if (options.doHiveImport()) {
-        hiveImport = new HiveImport(options, manager, options.getConf(), false);
-      }
 
       if (options.getAllTablesExclude() != null) {
         excludes.addAll(Arrays.asList(options.getAllTablesExclude().split(",")));
@@ -106,8 +102,9 @@ public class ImportAllTablesTool extends com.cloudera.sqoop.tool.ImportTool {
              * Number of mappers could be potentially reset in imports.  So
              * we set it to the configured number before each import.
              */
-            options.setNumMappers(numMappers);
-            importTable(options, tableName, hiveImport);
+            SqoopOptions clonedOptions = (SqoopOptions) options.clone();
+            clonedOptions.setTableName(tableName);
+            importTable(clonedOptions);
           }
         }
       }

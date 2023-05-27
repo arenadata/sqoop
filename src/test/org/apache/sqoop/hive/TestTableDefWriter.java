@@ -18,6 +18,7 @@
 package org.apache.sqoop.hive;
 
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
 
 import com.cloudera.sqoop.manager.ConnManager;
 import com.cloudera.sqoop.SqoopOptions;
@@ -122,5 +123,12 @@ public class TestTableDefWriter {
     Boolean isHiveExternalTableSet = !StringUtils.isBlank(options.getHiveExternalTableDir());
     LOG.debug("External table dir: "+options.getHiveExternalTableDir());
     assert (isHiveExternalTableSet && stmt.contains("LOAD DATA INPATH ") && stmt.contains(testTargetDir));
+  }
+
+  @Test
+  public void testGetCreateTableStmtDiscardsConnection() throws Exception {
+    writer.getCreateTableStmt();
+
+    verify(connManager).discardConnection(true);
   }
 }
