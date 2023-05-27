@@ -31,7 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
-
+import org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactory;
+import org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorFactoryProvider;
 import org.apache.avro.LogicalType;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema.Type;
@@ -861,5 +862,8 @@ public abstract class ConnManager {
     return false;
   }
 
+  public ParquetJobConfiguratorFactory getParquetJobConfigurator() {
+    return ParquetJobConfiguratorFactoryProvider.createParquetJobConfiguratorFactory(options.getConf());
+  }
 }
 

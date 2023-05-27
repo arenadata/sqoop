@@ -683,7 +683,7 @@ public abstract class SqlManager
     } else {
       // Import to HDFS.
       importer = new DataDrivenImportJob(opts, context.getInputFormat(),
-              context);
+              context, getParquetJobConfigurator().createParquetImportJobConfigurator());
     }
 
     checkTableImportOptions(context);
@@ -726,7 +726,7 @@ public abstract class SqlManager
     } else {
       // Import to HDFS.
       importer = new DataDrivenImportJob(opts, context.getInputFormat(),
-          context);
+          context, getParquetJobConfigurator().createParquetImportJobConfigurator());
     }
 
     String splitCol = getSplitColumn(opts, null);
@@ -927,7 +927,7 @@ public abstract class SqlManager
   public void exportTable(org.apache.sqoop.manager.ExportJobContext context)
       throws IOException, ExportException {
     context.setConnManager(this);
-    JdbcExportJob exportJob = new JdbcExportJob(context);
+    JdbcExportJob exportJob = new JdbcExportJob(context, getParquetJobConfigurator().createParquetExportJobConfigurator());
     exportJob.runExport();
   }
 
@@ -936,7 +936,7 @@ public abstract class SqlManager
       throws IOException,
       ExportException {
     context.setConnManager(this);
-    JdbcCallExportJob exportJob = new JdbcCallExportJob(context);
+    JdbcCallExportJob exportJob = new JdbcCallExportJob(context, getParquetJobConfigurator().createParquetExportJobConfigurator());
     exportJob.runExport();
   }
 
@@ -961,7 +961,7 @@ public abstract class SqlManager
       org.apache.sqoop.manager.ExportJobContext context)
       throws IOException, ExportException {
     context.setConnManager(this);
-    JdbcUpdateExportJob exportJob = new JdbcUpdateExportJob(context);
+    JdbcUpdateExportJob exportJob = new JdbcUpdateExportJob(context, getParquetJobConfigurator().createParquetExportJobConfigurator());
     exportJob.runExport();
   }
 
