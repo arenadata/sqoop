@@ -47,14 +47,14 @@ import org.apache.sqoop.lib.ClobRef;
 import org.apache.sqoop.util.ExportException;
 import org.apache.sqoop.util.ImportException;
 
+import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorImplementation.HADOOP;
+
 /**
  * Abstract interface that manages connections to a database.
  * The implementations of this class drive the actual discussion with
  * the database about table formats, etc.
  */
 public abstract class ConnManager {
-
-  protected SqoopOptions options;
 
   public static final Log LOG = LogFactory.getLog(SqlManager.class.getName());
 
@@ -864,7 +864,7 @@ public abstract class ConnManager {
 
 
   public ParquetJobConfiguratorFactory getParquetJobConfigurator() {
-    return options.getParquetConfiguratorImplementation().createFactory();
+    return HADOOP.createFactory();
   }
 }
 
