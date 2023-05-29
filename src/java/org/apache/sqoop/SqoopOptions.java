@@ -35,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.sqoop.accumulo.AccumuloConstants;
 import org.apache.sqoop.mapreduce.mainframe.MainframeConfiguration;
+import org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorImplementation;
 import org.apache.sqoop.tool.BaseSqoopTool;
 import org.apache.sqoop.util.CredentialsUtil;
 import org.apache.sqoop.util.LoggingUtils;
@@ -44,16 +45,15 @@ import org.apache.sqoop.validation.AbortOnFailureHandler;
 import org.apache.sqoop.validation.AbsoluteValidationThreshold;
 import org.apache.sqoop.validation.RowCountValidator;
 
-import com.cloudera.sqoop.SqoopOptions.FileLayout;
-import com.cloudera.sqoop.SqoopOptions.IncrementalMode;
-import com.cloudera.sqoop.SqoopOptions.UpdateMode;
-import com.cloudera.sqoop.lib.DelimiterSet;
-import com.cloudera.sqoop.lib.LargeObjectLoader;
-import com.cloudera.sqoop.tool.SqoopTool;
-import com.cloudera.sqoop.util.RandomHash;
-import com.cloudera.sqoop.util.StoredAsProperty;
+import org.apache.sqoop.lib.DelimiterSet;
+import org.apache.sqoop.lib.LargeObjectLoader;
+import org.apache.sqoop.tool.SqoopTool;
+import org.apache.sqoop.util.RandomHash;
+import org.apache.sqoop.util.StoredAsProperty;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.apache.sqoop.Sqoop.SQOOP_RETHROW_PROPERTY;
+import static org.apache.sqoop.mapreduce.parquet.ParquetJobConfiguratorImplementation.HADOOP;
 import static org.apache.sqoop.orm.ClassWriter.toJavaIdentifier;
 
 /**
@@ -80,6 +80,8 @@ public class SqoopOptions implements Cloneable {
   public static final String DEF_HCAT_HOME_OLD = "/usr/lib/hcatalog";
 
   public static final boolean METASTORE_PASSWORD_DEFAULT = false;
+  public static final String DB_PASSWORD_KEY = "db.password";
+
   /**
    * Thrown when invalid cmdline options are given.
    */
@@ -366,7 +368,7 @@ public class SqoopOptions implements Cloneable {
   // If we restore a job and then allow the user to apply arguments on
   // top, we retain the version without the arguments in a reference to the
   // 'parent' SqoopOptions instance, here.
-  private com.cloudera.sqoop.SqoopOptions parent;
+  private SqoopOptions parent;
 
   // Nonce directory name. Generate one per process, lazily, if
   // getNonceJarDir() is called. Not recorded in metadata. This is used as
@@ -399,12 +401,66 @@ public class SqoopOptions implements Cloneable {
   @StoredAsProperty("hbase.null.incremental.mode")
   private HBaseNullIncrementalMode hbaseNullIncrementalMode;
 
+  private String metaConnectStr;
+  private String metaUsername;
+  private String metaPassword;
+
+  @StoredAsProperty("hs2.url")
+  private String hs2Url;
+
+  @StoredAsProperty("hs2.user")
+  private String hs2User;
+
+  @StoredAsProperty("hs2.keytab")
+  private String hs2Keytab;
+
+  @StoredAsProperty("parquet.configurator.implementation")
+  private ParquetJobConfiguratorImplementation parquetConfiguratorImplementation;
+
   public SqoopOptions() {
     initDefaults(null);
   }
 
   public SqoopOptions(Configuration conf) {
     initDefaults(conf);
+  }
+
+  /** Selects in-HDFS destination file format. */
+  public enum FileLayout {
+    TextFile,
+    SequenceFile,
+    AvroDataFile,
+    ParquetFile
+  }
+
+  /**
+   * Incremental imports support two modes:
+   * <ul>
+   * <li>new rows being appended to the end of a table with an
+   * incrementing id</li>
+   * <li>new data results in a date-last-modified column being
+   * updated to NOW(); Sqoop will pull all dirty rows in the next
+   * incremental import.</li>
+   * </ul>
+   */
+  public enum IncrementalMode {
+    None,
+    AppendRows,
+    DateLastModified,
+  }
+
+  /**
+   * Update mode option specifies how updates are performed when
+   * new rows are found with non-matching keys in database.
+   * It supports two modes:
+   * <ul>
+   * <li>UpdateOnly: This is the default. New rows are silently ignored.</li>
+   * <li>AllowInsert: New rows are inserted into the database.</li>
+   * </ul>
+   */
+  public enum UpdateMode {
+    UpdateOnly,
+    AllowInsert
   }
 
   /**
@@ -751,7 +807,7 @@ public class SqoopOptions implements Cloneable {
       // Require that the user enter it now.
       setPasswordFromConsole();
     } else {
-      this.password = props.getProperty("db.password", this.password);
+      this.password = props.getProperty(DB_PASSWORD_KEY, this.password);
     }
   }
 
@@ -835,7 +891,7 @@ public class SqoopOptions implements Cloneable {
     if (this.getConf().getBoolean(
       METASTORE_PASSWORD_KEY, METASTORE_PASSWORD_DEFAULT)) {
       // If the user specifies, we may store the password in the metastore.
-      putProperty(props, "db.password", this.password);
+      putProperty(props, DB_PASSWORD_KEY, this.password);
       putProperty(props, "db.require.password", "false");
     } else if (this.password != null) {
       // Otherwise, if the user has set a password, we just record
@@ -1032,9 +1088,9 @@ public class SqoopOptions implements Cloneable {
     this.fetchSize = null;
 
     if (null == baseConfiguration) {
-      this.conf = new Configuration();
+      this.setConf(new Configuration());
     } else {
-      this.conf = baseConfiguration;
+      this.setConf(baseConfiguration);
     }
 
     this.extraArgs = null;
@@ -1086,6 +1142,7 @@ public class SqoopOptions implements Cloneable {
     this.escapeColumnMappingEnabled = true;
 
     this.hbaseNullIncrementalMode = HBaseNullIncrementalMode.Ignore;
+    this.parquetConfiguratorImplementation = HADOOP;
   }
 
   /**
@@ -2306,14 +2363,14 @@ public class SqoopOptions implements Cloneable {
   /**
    * Return the parent instance this SqoopOptions is derived from.
    */
-  public com.cloudera.sqoop.SqoopOptions getParent() {
+  public SqoopOptions getParent() {
     return this.parent;
   }
 
   /**
    * Set the parent instance this SqoopOptions is derived from.
    */
-  public void setParent(com.cloudera.sqoop.SqoopOptions options) {
+  public void setParent(SqoopOptions options) {
     this.parent = options;
   }
 
@@ -2808,6 +2865,59 @@ public class SqoopOptions implements Cloneable {
    */
   public void setHbaseNullIncrementalMode(HBaseNullIncrementalMode hbaseNullIncrementalMode) {
     this.hbaseNullIncrementalMode = hbaseNullIncrementalMode;
+  }
+
+  public String getMetaConnectStr() {
+    return metaConnectStr;
+  }
+
+  public void setMetaConnectStr(String metaConnectStr) {
+    this.metaConnectStr = metaConnectStr;
+  }
+
+  public String getMetaUsername() {
+    return metaUsername;
+  }
+
+  public void setMetaUsername(String metaUsername) {
+    this.metaUsername = metaUsername;
+  }
+
+  public String getMetaPassword() {
+    return metaPassword;
+  }
+
+  public void setMetaPassword(String metaPassword) {
+    this.metaPassword = metaPassword;
+  }
+
+  public String getHs2Url() {
+    return hs2Url;
+  }
+
+  public void setHs2Url(String hs2Url) {
+    this.hs2Url = hs2Url;
+  }
+
+  public String getHs2User() {
+    return hs2User;
+  }
+
+  public void setHs2User(String hs2User) {
+    this.hs2User = hs2User;
+  }
+
+  public String getHs2Keytab() {
+    return hs2Keytab;
+  }
+
+  public void setHs2Keytab(String hs2Keytab) {
+    this.hs2Keytab = hs2Keytab;
+  }
+
+
+  public ParquetJobConfiguratorImplementation getParquetConfiguratorImplementation() {
+    return parquetConfiguratorImplementation;
   }
 
 }

@@ -18,6 +18,8 @@
 
 package org.apache.sqoop.manager;
 
+import static org.apache.sqoop.manager.JdbcDrivers.ORACLE;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.Connection;
@@ -47,22 +49,22 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.sqoop.manager.oracle.OracleUtils;
 import org.apache.sqoop.util.LoggingUtils;
 
-import com.cloudera.sqoop.SqoopOptions;
-import com.cloudera.sqoop.SqoopOptions.UpdateMode;
-import com.cloudera.sqoop.mapreduce.ExportBatchOutputFormat;
-import com.cloudera.sqoop.mapreduce.JdbcExportJob;
-import com.cloudera.sqoop.mapreduce.JdbcUpsertExportJob;
-import com.cloudera.sqoop.mapreduce.OracleUpsertOutputFormat;
-import com.cloudera.sqoop.mapreduce.db.OracleDataDrivenDBInputFormat;
-import com.cloudera.sqoop.util.ExportException;
-import com.cloudera.sqoop.util.ImportException;
+import org.apache.sqoop.SqoopOptions;
+import org.apache.sqoop.SqoopOptions.UpdateMode;
+import org.apache.sqoop.mapreduce.ExportBatchOutputFormat;
+import org.apache.sqoop.mapreduce.JdbcExportJob;
+import org.apache.sqoop.mapreduce.JdbcUpsertExportJob;
+import org.apache.sqoop.mapreduce.OracleUpsertOutputFormat;
+import org.apache.sqoop.mapreduce.db.OracleDataDrivenDBInputFormat;
+import org.apache.sqoop.util.ExportException;
+import org.apache.sqoop.util.ImportException;
 
 /**
  * Manages connections to Oracle databases.
  * Requires the Oracle JDBC driver.
  */
 public class OracleManager
-    extends com.cloudera.sqoop.manager.GenericJdbcManager {
+    extends org.apache.sqoop.manager.GenericJdbcManager {
 
   public static final Log LOG = LogFactory.getLog(
       OracleManager.class.getName());
@@ -117,9 +119,6 @@ public class OracleManager
    */
   public static final String QUERY_GET_SESSIONUSER =
      "SELECT USER FROM DUAL";
-
-  // driver class to ensure is loaded when making db connection.
-  private static final String DRIVER_CLASS = "oracle.jdbc.OracleDriver";
 
   // Configuration key to use to set the session timezone.
   public static final String ORACLE_TIMEZONE_KEY = "oracle.sessionTimeZone";
@@ -247,7 +246,7 @@ public class OracleManager
   }
 
   public OracleManager(final SqoopOptions opts) {
-    super(DRIVER_CLASS, opts);
+    super(ORACLE.getDriverClass(), opts);
   }
 
   public void close() throws SQLException {
@@ -446,7 +445,7 @@ public class OracleManager
 
   @Override
   public void importTable(
-          com.cloudera.sqoop.manager.ImportJobContext context)
+      org.apache.sqoop.manager.ImportJobContext context)
       throws IOException, ImportException {
     context.setConnManager(this);
     // Specify the Oracle-specific DBInputFormat for import.
@@ -457,11 +456,11 @@ public class OracleManager
   /**
    * Export data stored in HDFS into a table in a database.
    */
-  public void exportTable(com.cloudera.sqoop.manager.ExportJobContext context)
+  public void exportTable(org.apache.sqoop.manager.ExportJobContext context)
       throws IOException, ExportException {
     context.setConnManager(this);
     JdbcExportJob exportJob = new JdbcExportJob(context,
-            null, null, ExportBatchOutputFormat.class);
+            null, null, ExportBatchOutputFormat.class, getParquetJobConfigurator().createParquetExportJobConfigurator());
     exportJob.runExport();
   }
 
@@ -469,11 +468,11 @@ public class OracleManager
   /**
    * {@inheritDoc}
    */
-  public void upsertTable(com.cloudera.sqoop.manager.ExportJobContext context)
+  public void upsertTable(org.apache.sqoop.manager.ExportJobContext context)
       throws IOException, ExportException {
     context.setConnManager(this);
     JdbcUpsertExportJob exportJob =
-      new JdbcUpsertExportJob(context, OracleUpsertOutputFormat.class);
+      new JdbcUpsertExportJob(context, OracleUpsertOutputFormat.class, getParquetJobConfigurator().createParquetExportJobConfigurator());
     exportJob.runExport();
   }
 
