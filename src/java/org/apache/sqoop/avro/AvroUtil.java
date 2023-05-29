@@ -37,6 +37,11 @@ import org.apache.hadoop.io.BytesWritable;
 import org.apache.sqoop.lib.BlobRef;
 import org.apache.sqoop.lib.ClobRef;
 import org.apache.sqoop.orm.ClassWriter;
+import org.apache.parquet.avro.AvroSchemaConverter;
+import org.apache.parquet.format.converter.ParquetMetadataConverter;
+import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.apache.parquet.schema.MessageType;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -51,6 +56,9 @@ import java.util.Map;
  * The service class provides methods for creating and converting Avro objects.
  */
 public final class AvroUtil {
+
+  public static final String DECIMAL = "decimal";
+
   public static boolean isDecimal(Schema.Field field) {
     return isDecimal(field.schema());
   }
@@ -65,20 +73,54 @@ public final class AvroUtil {
 
       return false;
     } else {
-      return "decimal".equals(schema.getProp(LogicalType.LOGICAL_TYPE_PROP));
+      return DECIMAL.equals(schema.getProp(LogicalType.LOGICAL_TYPE_PROP));
     }
+  }
+
+  private static BigDecimal padBigDecimal(BigDecimal bd, Schema schema) {
+    Schema schemaContainingScale = getDecimalSchema(schema);
+    if(schemaContainingScale != null) {
+      int scale = Integer.valueOf(schemaContainingScale.getObjectProp("scale").toString());
+      if (bd.scale() != scale) {
+        return bd.setScale(scale);
+      }
+    }
+    return bd;
+  }
+
+  private static Schema getDecimalSchema(Schema schema) {
+    if (schema.getType().equals(Schema.Type.UNION)) {
+      for (Schema type : schema.getTypes()) {
+        // search for decimal schema
+        Schema schemaContainingScale = getDecimalSchema(type);
+        if (schemaContainingScale != null) {
+          return schemaContainingScale;
+        }
+      }
+    } else {
+      if(DECIMAL.equals(schema.getProp(LogicalType.LOGICAL_TYPE_PROP))) {
+        return schema;
+      }
+    }
+    return null;
   }
 
   /**
    * Convert a Sqoop's Java representation to Avro representation.
    */
-  public static Object toAvro(Object o, Schema.Field field, boolean bigDecimalFormatString) {
-    if (o instanceof BigDecimal && !isDecimal(field)) {
-      if (bigDecimalFormatString) {
-        // Returns a string representation of this without an exponent field.
-        return ((BigDecimal) o).toPlainString();
-      } else {
-        return o.toString();
+  public static Object toAvro(Object o, Schema.Field field, boolean bigDecimalFormatString, boolean bigDecimalPaddingEnabled) {
+
+    if (o instanceof BigDecimal) {
+      if(bigDecimalPaddingEnabled) {
+        o = padBigDecimal((BigDecimal) o, field.schema());
+      }
+      if (!isDecimal(field)) {
+        if (bigDecimalFormatString) {
+          // Returns a string representation of this without an exponent field.
+          return ((BigDecimal) o).toPlainString();
+        } else {
+          return o.toString();
+        }
       }
     } else if (o instanceof Date) {
       return ((Date) o).getTime();
@@ -136,16 +178,21 @@ public final class AvroUtil {
     }
   }
 
+  public static GenericRecord toGenericRecord(Map<String, Object> fieldMap,
+                                              Schema schema, boolean bigDecimalFormatString) {
+    return toGenericRecord(fieldMap, schema, bigDecimalFormatString, false);
+  }
+
   /**
    * Manipulate a GenericRecord instance.
    */
   public static GenericRecord toGenericRecord(Map<String, Object> fieldMap,
-      Schema schema, boolean bigDecimalFormatString) {
+      Schema schema, boolean bigDecimalFormatString, boolean bigDecimalPaddingEnabled) {
     GenericRecord record = new GenericData.Record(schema);
     for (Map.Entry<String, Object> entry : fieldMap.entrySet()) {
       String avroColumn = toAvroColumn(entry.getKey());
       Schema.Field field = schema.getField(avroColumn);
-      Object avroObject = toAvro(entry.getValue(), field, bigDecimalFormatString);
+      Object avroObject = toAvro(entry.getValue(), field, bigDecimalFormatString, bigDecimalPaddingEnabled);
       record.put(avroColumn, avroObject);
     }
     return record;
@@ -155,7 +202,7 @@ public final class AvroUtil {
   private static final String TIME_TYPE = "java.sql.Time";
   private static final String DATE_TYPE = "java.sql.Date";
   private static final String BIG_DECIMAL_TYPE = "java.math.BigDecimal";
-  private static final String BLOB_REF_TYPE = "com.cloudera.sqoop.lib.BlobRef";
+  private static final String BLOB_REF_TYPE = "org.apache.sqoop.lib.BlobRef";
 
   /**
    * Convert from Avro type to Sqoop's java representation of the SQL type
@@ -240,24 +287,7 @@ public final class AvroUtil {
    */
   public static Schema getAvroSchema(Path path, Configuration conf)
       throws IOException {
-    FileSystem fs = path.getFileSystem(conf);
-    Path fileToTest;
-    if (fs.isDirectory(path)) {
-      FileStatus[] fileStatuses = fs.listStatus(path, new PathFilter() {
-        @Override
-        public boolean accept(Path p) {
-          String name = p.getName();
-          return !name.startsWith("_") && !name.startsWith(".");
-        }
-      });
-      if (fileStatuses.length == 0) {
-        return null;
-      }
-      fileToTest = fileStatuses[0].getPath();
-    } else {
-      fileToTest = path;
-    }
-
+    Path fileToTest = getFileToTest(path, conf);
     SeekableInput input = new FsInput(fileToTest, conf);
     DatumReader<GenericRecord> reader = new GenericDatumReader<GenericRecord>();
     FileReader<GenericRecord> fileReader = DataFileReader.openReader(input, reader);
@@ -265,5 +295,39 @@ public final class AvroUtil {
     Schema result = fileReader.getSchema();
     fileReader.close();
     return result;
+  }
+
+  private static Path getFileToTest(Path path, Configuration conf) throws IOException {
+    FileSystem fs = path.getFileSystem(conf);
+    if (!fs.isDirectory(path)) {
+      return path;
+    }
+    FileStatus[] fileStatuses = fs.listStatus(path, new PathFilter() {
+      @Override
+      public boolean accept(Path p) {
+        String name = p.getName();
+        return !name.startsWith("_") && !name.startsWith(".");
+      }
+    });
+    if (fileStatuses.length == 0) {
+      return null;
+    }
+    return fileStatuses[0].getPath();
+  }
+
+  public static Schema getAvroSchemaFromParquetFile(Path path, Configuration conf) throws IOException {
+    Path fileToTest = getFileToTest(path, conf);
+    if (fileToTest == null) {
+      return null;
+    }
+    ParquetMetadata parquetMetadata = ParquetFileReader.readFooter(conf, fileToTest, ParquetMetadataConverter.NO_FILTER);
+
+    MessageType parquetSchema = parquetMetadata.getFileMetaData().getSchema();
+    AvroSchemaConverter avroSchemaConverter = new AvroSchemaConverter();
+    return avroSchemaConverter.convert(parquetSchema);
+  }
+
+  public static Schema parseAvroSchema(String schemaString) {
+    return new Schema.Parser().parse(schemaString);
   }
 }
