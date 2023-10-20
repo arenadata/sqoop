@@ -20,7 +20,7 @@ package org.apache.sqoop.hbase;
 
 import static org.apache.hadoop.hbase.HConstants.*;
 import static org.apache.hadoop.hbase.coprocessor.CoprocessorHost.REGION_COPROCESSOR_CONF_KEY;
-import static org.apache.hadoop.hbase.security.HBaseKerberosUtils.KRB_PRINCIPAL;
+import static org.apache.hadoop.hbase.security.SecurityConstants.REGIONSERVER_KRB_PRINCIPAL;
 import static org.apache.hadoop.hbase.security.SecurityConstants.MASTER_KRB_PRINCIPAL;
 import static org.apache.hadoop.hbase.security.User.HBASE_SECURITY_CONF_KEY;
 import static org.apache.hadoop.hdfs.DFSConfigKeys.*;
@@ -289,7 +289,7 @@ public abstract class HBaseTestCase extends ImportJobTestCase {
     result.add("-D");
     result.add(createFlagWithValue(MASTER_KRB_PRINCIPAL, principalForTesting));
     result.add("-D");
-    result.add(createFlagWithValue(KRB_PRINCIPAL, principalForTesting));
+    result.add(createFlagWithValue(REGIONSERVER_KRB_PRINCIPAL, principalForTesting));
     result.add("-D");
     result.add(createFlagWithValue(RM_PRINCIPAL, principalForTesting));
 
