@@ -18,7 +18,7 @@
 
 package org.apache.sqoop.hbase;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sqoop.testutil.BaseSqoopTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Arrays.asList;
-import static org.apache.commons.lang.StringUtils.join;
+import static org.apache.commons.lang3.StringUtils.join;
 
 @RunWith(Parameterized.class)
 public class HBaseImportAddRowKeyTest extends HBaseTestCase {
