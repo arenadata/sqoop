@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.avro.Schema.Type;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

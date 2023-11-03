@@ -1614,7 +1614,7 @@ public abstract class BaseSqoopTool extends org.apache.sqoop.tool.SqoopTool {
     }
     // importing to Hive external tables requires target directory to be set
     // for external table's location
-    Boolean isNotHiveImportButExternalTableDirIsSet = !options.doHiveImport() && !org.apache.commons.lang.StringUtils.isBlank(options.getHiveExternalTableDir());
+    Boolean isNotHiveImportButExternalTableDirIsSet = !options.doHiveImport() && !org.apache.commons.lang3.StringUtils.isBlank(options.getHiveExternalTableDir());
     if (isNotHiveImportButExternalTableDirIsSet) {
       LOG.warn("Importing to external Hive table requires --hive-import parameter to be set");
       throw new InvalidOptionsException("Importing to external Hive table requires --hive-import parameter to be set."
@@ -1804,7 +1804,7 @@ public abstract class BaseSqoopTool extends org.apache.sqoop.tool.SqoopTool {
   }
 
   private boolean isSet(String option) {
-    return org.apache.commons.lang.StringUtils.isNotBlank(option);
+    return org.apache.commons.lang3.StringUtils.isNotBlank(option);
   }
 
   protected void validateHBaseOptions(SqoopOptions options)
