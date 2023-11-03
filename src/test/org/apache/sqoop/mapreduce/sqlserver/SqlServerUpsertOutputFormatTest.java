@@ -23,7 +23,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.lang.reflect.Constructor;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapred.lib.db.DBConfiguration;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
