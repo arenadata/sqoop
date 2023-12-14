@@ -20,7 +20,7 @@ package org.apache.sqoop.manager;
 
 import org.apache.sqoop.SqoopOptions;
 import org.apache.sqoop.metastore.JobData;
-import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.Test;
 
