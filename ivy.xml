@@ -204,6 +204,18 @@ under the License.
       <exclude org="ch.qos.reload4j" module="reload4j"/>
       <exclude org="org.apache.avro" module="avro" />
     </dependency>
+    <dependency org="org.apache.hbase" name="hbase-mapreduce" rev="${hbase.version}" conf="common->default">
+      <artifact name="hbase-mapreduce" type="jar"/>
+      <artifact name="hbase-mapreduce" type="test-jar" ext="jar" m:classifier="tests"/>
+      <exclude org="com.sun.jersey" module="jersey-core"/>
+      <exclude org="com.sun.jersey" module="jersey-json"/>
+      <exclude org="com.sun.jersey" module="jersey-server"/>
+      <exclude org="org.apache.thrift" module="thrift"/>
+      <exclude org="log4j" module="log4j"/>
+      <exclude org="ch.qos.reload4j" module="reload4j"/>
+      <exclude org="org.apache.avro" module="avro" />
+    </dependency>
+
 
     <dependency org="org.apache.hive" name="hive-jdbc" rev="${hcatalog.version}" conf="common->default" >
       <exclude org="com.twitter" module="parquet-hadoop-bundle"/>

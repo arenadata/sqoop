@@ -74,10 +74,10 @@ public class HiveMiniCluster {
 
   private void createHiveConf() {
     config = new HiveConf();
-    config.set(HiveConf.ConfVars.METASTOREWAREHOUSE.varname, tempFolderPath);
+    config.set(HiveConf.ConfVars.METASTORE_WAREHOUSE.varname, tempFolderPath);
     config.set(HiveConf.ConfVars.HIVE_SERVER2_THRIFT_BIND_HOST.varname, getHostName());
     config.setInt(HiveConf.ConfVars.HIVE_SERVER2_THRIFT_PORT.varname, getPort());
-    config.set(HiveConf.ConfVars.METASTORECONNECTURLKEY.varname, getMetastoreConnectUrl());
+    config.set(HiveConf.ConfVars.METASTORE_CONNECT_URL_KEY.varname, getMetastoreConnectUrl());
     // setting port to -1 to turn the webui off
     config.setInt(HiveConf.ConfVars.HIVE_SERVER2_WEBUI_PORT.varname, -1);
 
